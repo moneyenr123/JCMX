@@ -1,262 +1,274 @@
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-const keys = {};
-window.addEventListener("keydown", e => keys[e.code] = true);
-window.addEventListener("keyup", e => keys[e.code] = false);
+// Resize canvas
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-let currentMode = "trials"; // "trials" or "motocross"
-let currentBike = "green-2";
-let currentLevelIndex = 0;
+// --- GAME STATE ---
+let gameState = 'menu'; // 'menu' or 'playing'
+let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
-const levels = [];
-createLevels(20); // change to 200 when you're ready
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
 
-const bikes = {
-  "green-2":  { color: "#00c853", stroke: "2", power: 0.12, weight: 1.0 },
-  "red-4":    { color: "#ff1744", stroke: "4", power: 0.16, weight: 1.2 },
-  "blue-2":   { color: "#2979ff", stroke: "2", power: 0.13, weight: 1.05 }
+// --- BIKE & PHYSICS ---
+const bike = {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    vAngle: 0,
+    speed: 0,
+    rpm: 1500,
+    name: '',
+    type: '4-stroke',
+    color: '#ff4444'
 };
 
-const player = {
-  x: 100,
-  y: 200,
-  vx: 0,
-  vy: 0,
-  angle: 0,
-  angVel: 0,
-  onGround: false
+const physics = {
+    gravity: 0.25,
+    friction: 0.98,
+    acceleration: 0.3,
+    maxSpeed: 15
 };
 
-const npcs = [];
-
-function createLevels(count) {
-  for (let i = 0; i < count; i++) {
-    const segments = [];
-    let x = 0;
-    let y = 350;
-    for (let s = 0; s < 40; s++) {
-      x += 40;
-      y += (Math.random() - 0.5) * 40;
-      y = Math.max(200, Math.min(450, y));
-      segments.push({ x, y });
+// --- TERRAIN GENERATION ---
+const terrain = [];
+const segmentLength = 20;
+function generateTerrain() {
+    let y = 400;
+    for (let i = 0; i < 2000; i++) {
+        // Create rolling hills using sine waves
+        y += Math.sin(i * 0.1) * 5 + Math.sin(i * 0.03) * 10;
+        terrain.push(y);
     }
-    levels.push({ segments, finishX: x });
-  }
 }
+generateTerrain();
 
-function setMode(mode) {
-  currentMode = mode;
-  resetRace();
-}
-
-function setBike(id) {
-  currentBike = id;
-  resetRace();
-}
-
-function setLevel(index) {
-  currentLevelIndex = index;
-  resetRace();
-}
-
-function resetRace() {
-  const level = levels[currentLevelIndex];
-  player.x = 80;
-  player.y = 200;
-  player.vx = 0;
-  player.vy = 0;
-  player.angle = 0;
-  player.angVel = 0;
-
-  npcs.length = 0;
-  if (currentMode === "motocross") {
-    for (let i = 0; i < 5; i++) {
-      npcs.push({
-        x: 60 - i * 20,
-        y: 200,
-        vx: 0,
-        vy: 0,
-        angle: 0,
-        angVel: 0,
-        aiSkill: 0.8 + Math.random() * 0.4
-      });
+// --- DIRT PARTICLES ---
+const particles = [];
+function spawnDirt() {
+    if (bike.speed > 1 && keys['ArrowUp']) {
+        for(let i=0; i<3; i++){
+            particles.push({
+                x: bike.x - 20, 
+                y: bike.y + 15,
+                vx: -Math.random() * 5 - bike.speed * 0.5,
+                vy: -Math.random() * 5,
+                life: 1.0,
+                size: Math.random() * 4 + 2
+            });
+        }
     }
-  }
 }
 
-function update(dt) {
-  const bike = bikes[currentBike];
-  const level = levels[currentLevelIndex];
-
-  const gravity = 0.0018;
-  const groundFriction = 0.0009;
-  const airFriction = 0.0003;
-  const torque = 0.0025;
-
-  let throttle = 0;
-  if (keys["ArrowUp"] || keys["KeyW"]) throttle = 1;
-  if (keys["ArrowDown"] || keys["KeyS"]) throttle = -0.5;
-
-  const ground = sampleGround(level, player.x);
-  const onGround = player.y >= ground.y - 10;
-
-  if (onGround) {
-    player.onGround = true;
-    player.y = ground.y - 10;
-    player.vy = 0;
-
-    const targetAngle = ground.angle;
-    player.angle += (targetAngle - player.angle) * 0.2;
-
-    player.vx += throttle * bike.power * dt * (1 / bike.weight);
-    player.vx *= (1 - groundFriction * dt);
-  } else {
-    player.onGround = false;
-    if (keys["ArrowLeft"] || keys["KeyA"]) player.angVel -= torque * dt;
-    if (keys["ArrowRight"] || keys["KeyD"]) player.angVel += torque * dt;
-    player.vy += gravity * dt;
-    player.vx *= (1 - airFriction * dt);
-  }
-
-  player.x += player.vx * dt;
-  player.y += player.vy * dt;
-  player.angle += player.angVel * dt;
-
-  if (currentMode === "motocross") {
-    for (const npc of npcs) {
-      const g = sampleGround(level, npc.x);
-      const targetSpeed = 0.25 * npc.aiSkill;
-      const accel = (targetSpeed - npc.vx) * 0.002;
-      npc.vx += accel * dt;
-
-      const npcOnGround = npc.y >= g.y - 10;
-      if (npcOnGround) {
-        npc.y = g.y - 10;
-        npc.vy = 0;
-        npc.angle += (g.angle - npc.angle) * 0.2;
-      } else {
-        npc.vy += gravity * dt;
-      }
-
-      npc.x += npc.vx * dt;
-      npc.y += npc.vy * dt;
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2; // gravity on dirt
+        p.life -= 0.02;
+        if (p.life <= 0) particles.splice(i, 1);
     }
-  }
-
-  if (player.x >= level.finishX + 40) {
-    currentLevelIndex = (currentLevelIndex + 1) % levels.length;
-    resetRace();
-  }
 }
 
-function sampleGround(level, x) {
-  const segs = level.segments;
-  if (x <= segs[0].x) {
-    return { y: segs[0].y, angle: 0 };
-  }
-  for (let i = 1; i < segs.length; i++) {
-    const a = segs[i - 1];
-    const b = segs[i];
-    if (x >= a.x && x <= b.x) {
-      const t = (x - a.x) / (b.x - a.x);
-      const y = a.y + (b.y - a.y) * t;
-      const angle = Math.atan2(b.y - a.y, b.x - a.x);
-      return { y, angle };
+// --- AUDIO ENGINE ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let oscillator, gainNode, filterNode;
+
+function initAudio(type) {
+    if (oscillator) oscillator.stop();
+    
+    oscillator = audioCtx.createOscillator();
+    filterNode = audioCtx.createBiquadFilter();
+    gainNode = audioCtx.createGain();
+    
+    // 2-stroke: buzzy sawtooth. 4-stroke: throaty square.
+    oscillator.type = (type === '2-stroke') ? 'sawtooth' : 'square';
+    
+    // Filter to make it sound more like an engine and less like an arcade beep
+    filterNode.type = 'lowpass';
+    filterNode.frequency.value = (type === '2-stroke') ? 2000 : 1000;
+
+    oscillator.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    gainNode.gain.value = 0.1;
+    oscillator.start();
+}
+
+function updateAudio() {
+    if (gameState !== 'playing') return;
+    
+    let baseFreq = (bike.type === '2-stroke') ? 60 : 35;
+    let rpmPitch = baseFreq + (bike.rpm / 25);
+    
+    // Smooth pitch sliding
+    oscillator.frequency.setTargetAtTime(rpmPitch, audioCtx.currentTime, 0.05);
+    
+    // Update HUD
+    document.getElementById('rpmDisplay').innerText = Math.round(bike.rpm);
+    document.getElementById('speedDisplay').innerText = Math.round(bike.speed * 2);
+}
+
+// --- MAIN LOOP ---
+function update() {
+    if (gameState !== 'playing') return;
+
+    // Throttle & Braking
+    if (keys['ArrowUp']) {
+        bike.speed += physics.acceleration;
+        bike.rpm = Math.min(12000, bike.rpm + 400);
+        spawnDirt();
+    } else if (keys['ArrowDown']) {
+        bike.speed -= physics.acceleration * 1.5;
+        bike.rpm = Math.max(1500, bike.rpm - 300);
+    } else {
+        bike.speed *= physics.friction;
+        bike.rpm = Math.max(1500, bike.rpm - 150);
     }
-  }
-  const last = segs[segs.length - 1];
-  return { y: last.y, angle: 0 };
-}
+    
+    // Cap speed
+    if (bike.speed > physics.maxSpeed) bike.speed = physics.maxSpeed;
+    if (bike.speed < 0) bike.speed = 0;
 
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // X position updates based on speed
+    bike.x += bike.speed;
 
-  const level = levels[currentLevelIndex];
-  const bike = bikes[currentBike];
+    // Leaning
+    if (keys['ArrowLeft']) bike.vAngle -= 0.01;
+    if (keys['ArrowRight']) bike.vAngle += 0.01;
+    bike.angle += bike.vAngle;
+    bike.vAngle *= 0.9; // air resistance on rotation
 
-  const camX = player.x - canvas.width * 0.3;
+    // Terrain Collision (Simple Raycast downward)
+    let terrainIndex = Math.floor(bike.x / segmentLength);
+    // Ensure we don't go out of bounds of our terrain array
+    if (terrainIndex >= terrain.length - 1) terrainIndex = terrain.length - 2; 
+    
+    // Interpolate exact ground Y
+    let t1 = terrain[terrainIndex];
+    let t2 = terrain[terrainIndex + 1];
+    let percent = (bike.x % segmentLength) / segmentLength;
+    let groundY = t1 + (t2 - t1) * percent;
 
-  ctx.save();
-  ctx.translate(-camX, 0);
+    // Gravity & Ground Interaction
+    bike.vy += physics.gravity;
+    bike.y += bike.vy;
 
-  ctx.strokeStyle = "#3b3b3b";
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  for (let i = 0; i < level.segments.length; i++) {
-    const s = level.segments[i];
-    if (i === 0) ctx.moveTo(s.x, s.y);
-    else ctx.lineTo(s.x, s.y);
-  }
-  ctx.stroke();
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(level.finishX + 20, 200, 4, 120);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(level.finishX + 24, 200, 20, 20);
-
-  if (currentMode === "motocross") {
-    for (const npc of npcs) {
-      drawBike(npc.x, npc.y, npc.angle, "#ffea00");
+    if (bike.y > groundY - 20) {
+        bike.y = groundY - 20;
+        bike.vy = 0;
+        
+        // Auto-align bike angle to slope slightly when on ground
+        let targetAngle = Math.atan2(t2 - t1, segmentLength);
+        bike.angle += (targetAngle - bike.angle) * 0.1;
     }
-  }
 
-  drawBike(player.x, player.y, player.angle, bike.color);
-
-  ctx.restore();
+    updateParticles();
+    updateAudio();
 }
 
-function drawBike(x, y, angle, color) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
+function draw() {
+    // Clear & Sky
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#111";
-  ctx.beginPath();
-  ctx.arc(-18, 10, 10, 0, Math.PI * 2);
-  ctx.arc(18, 10, 10, 0, Math.PI * 2);
-  ctx.fill();
+    if (gameState === 'playing') {
+        // Camera logic (Keep bike in lower-left third of screen)
+        ctx.save();
+        ctx.translate(canvas.width / 3 - bike.x, canvas.height / 1.5 - bike.y);
 
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-18, 0);
-  ctx.lineTo(0, -12);
-  ctx.lineTo(18, 0);
-  ctx.stroke();
+        // Draw Terrain
+        ctx.beginPath();
+        ctx.moveTo(bike.x - canvas.width, 2000); // Bottom left
+        for (let i = Math.max(0, Math.floor((bike.x - canvas.width)/segmentLength)); i < Math.floor((bike.x + canvas.width*2)/segmentLength); i++) {
+            if (i < terrain.length) {
+                ctx.lineTo(i * segmentLength, terrain[i]);
+            }
+        }
+        ctx.lineTo(bike.x + canvas.width * 2, 2000); // Bottom right
+        ctx.fillStyle = '#3a2318'; // Dirt brown
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#5c3a21'; // Lighter dirt edge
+        ctx.stroke();
 
-  ctx.fillStyle = "#eee";
-  ctx.beginPath();
-  ctx.arc(0, -22, 6, 0, Math.PI * 2);
-  ctx.fill();
+        // Draw Particles
+        particles.forEach(p => {
+            ctx.fillStyle = `rgba(92, 58, 33, ${p.life})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
 
-  ctx.restore();
+        // Draw Bike
+        ctx.save();
+        ctx.translate(bike.x, bike.y);
+        ctx.rotate(bike.angle);
+        
+        // Bike Frame
+        ctx.fillStyle = bike.color;
+        ctx.beginPath();
+        ctx.moveTo(-15, -5);
+        ctx.lineTo(15, -10);
+        ctx.lineTo(10, 5);
+        ctx.lineTo(-10, 5);
+        ctx.fill();
+        
+        // Wheels
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.arc(-20, 10, 12, 0, Math.PI*2); // Rear
+        ctx.arc(20, 10, 12, 0, Math.PI*2);  // Front
+        ctx.fill();
+        
+        // Rider (Simple)
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-5, -25, 10, 20); // Body
+        ctx.beginPath();
+        ctx.arc(0, -30, 6, 0, Math.PI*2); // Helmet
+        ctx.fill();
+
+        ctx.restore();
+        ctx.restore(); // End Camera
+    }
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
 }
 
-let lastTime = performance.now();
-function loop(now) {
-  const dt = now - lastTime;
-  lastTime = now;
-  update(dt);
-  render();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
-document.querySelectorAll("#mode-select button").forEach(btn => {
-  btn.addEventListener("click", () => setMode(btn.dataset.mode));
+// --- INIT ---
+document.querySelectorAll('.bike-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Must resume AudioContext after a user gesture
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        bike.name = e.target.getAttribute('data-name');
+        bike.type = e.target.getAttribute('data-type');
+        bike.color = bike.type === '4-stroke' ? '#ff4444' : '#44aaff';
+        
+        document.getElementById('bikeNameDisplay').innerText = bike.name;
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+        
+        bike.x = 0;
+        bike.y = 0;
+        bike.speed = 0;
+        
+        initAudio(bike.type);
+        gameState = 'playing';
+    });
 });
 
-document.querySelectorAll("#bike-select button").forEach(btn => {
-  btn.addEventListener("click", () => setBike(btn.dataset.bike));
-});
-
-const levelSelect = document.getElementById("level-select");
-levels.forEach((_, i) => {
-  const b = document.createElement("button");
-  b.textContent = i + 1;
-  b.addEventListener("click", () => setLevel(i));
-  levelSelect.appendChild(b);
-});
-
-resetRace();
+// Start loop
+draw();
