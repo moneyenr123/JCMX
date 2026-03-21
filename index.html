@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JCMX - Motocross</title>
+    <title>JCMX - Realistic Physics Update</title>
     
     <link rel="icon" type="image/png" href="../favicon.png">
     <link rel="apple-touch-icon" href="../favicon.png">
@@ -17,12 +17,15 @@
 
     <div id="hud">
         <div class="hud-item">Bike: <span id="bikeNameDisplay">None</span></div>
-        <div class="hud-item">RPM: <span id="rpmDisplay">0</span></div>
         <div class="hud-item">Speed: <span id="speedDisplay">0</span> mph</div>
+        <div class="hud-item">RPM: <span id="rpmDisplay">0</span></div>
+        <div class="hud-item" style="margin-top: 10px; font-size: 1.3rem;">Score: <span id="scoreDisplay" style="color: #00ff88;">0</span></div>
     </div>
+    
+    <div id="jumpAlert"></div>
 
     <div id="menu" class="glass-panel">
-        <h1>JCMX</h1>
+        <h1>JCMX Pro</h1>
         <h2>Select Your Ride</h2>
         <div class="bike-grid">
             <button class="bike-btn four-stroke" data-name="KLX 450" data-type="4-stroke">KLX 450 (4T)</button>
@@ -34,7 +37,7 @@
         </div>
         <div class="controls-info">
             <p><strong>[UP]</strong> Gas | <strong>[DOWN]</strong> Brake</p>
-            <p><strong>[LEFT] / [RIGHT]</strong> Lean</p>
+            <p><strong>[LEFT] / [RIGHT]</strong> Lean & Flip in Air</p>
         </div>
     </div>
 
