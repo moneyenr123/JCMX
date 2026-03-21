@@ -1,34 +1,110 @@
+/* Base Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-  margin: 0;
-  background: #05070a;
-  color: #f5f5f5;
-  font-family: system-ui, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+    background-color: #0a0a0a;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden; /* Prevents scrollbars */
 }
 
-#ui {
-  margin-top: 10px;
-  text-align: center;
+/* Canvas Styling */
+#gameCanvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to bottom, #1e3c72, #2a5298); /* Sky gradient */
 }
 
-button {
-  margin: 4px;
-  padding: 6px 12px;
-  background: #222;
-  color: #fff;
-  border: 1px solid #555;
-  border-radius: 4px;
-  cursor: pointer;
+/* Glassmorphism Menu */
+.glass-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    z-index: 10;
 }
 
-button:hover {
-  background: #444;
+.glass-panel h1 {
+    font-size: 3rem;
+    margin-bottom: 5px;
+    color: #ffaa00;
+    text-shadow: 0 2px 10px rgba(255, 170, 0, 0.5);
 }
 
-#game {
-  margin-top: 10px;
-  background: linear-gradient(#6ec5ff, #4a8fdd 40%, #3b3b3b 40%);
-  border: 2px solid #111;
+.glass-panel h2 {
+    font-size: 1.2rem;
+    margin-bottom: 25px;
+    font-weight: 300;
+}
+
+.bike-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.bike-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bike-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.bike-btn.four-stroke { border-left: 4px solid #ff4444; }
+.bike-btn.two-stroke { border-left: 4px solid #44aaff; }
+
+.controls-info {
+    font-size: 0.9rem;
+    color: #aaa;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* HUD (Heads Up Display) */
+#hud {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: none; /* Hidden until game starts */
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 5;
+}
+
+.hud-item {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.hud-item span {
+    color: #ffaa00;
 }
