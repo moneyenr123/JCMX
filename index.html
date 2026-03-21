@@ -1,27 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>JCMX</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JCMX - Motocross</title>
+    
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <meta name="apple-mobile-web-app-title" content="JC Mini Games">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="ui">
-    <h1>JCMX</h1>
-    <div id="mode-select">
-      <button data-mode="trials">Trials Mode</button>
-      <button data-mode="motocross">Motocross Mode</button>
-    </div>
-    <div id="bike-select">
-      <button data-bike="green-2">Green 2‑Stroke</button>
-      <button data-bike="red-4">Red 4‑Stroke</button>
-      <button data-bike="blue-2">Blue 2‑Stroke</button>
-    </div>
-    <div id="level-select"></div>
-  </div>
 
-  <canvas id="game" width="960" height="540"></canvas>
+    <div id="hud">
+        <div class="hud-item">Bike: <span id="bikeNameDisplay">None</span></div>
+        <div class="hud-item">RPM: <span id="rpmDisplay">0</span></div>
+        <div class="hud-item">Speed: <span id="speedDisplay">0</span> mph</div>
+    </div>
 
-  <script src="game.js"></script>
+    <div id="menu" class="glass-panel">
+        <h1>JCMX</h1>
+        <h2>Select Your Ride</h2>
+        <div class="bike-grid">
+            <button class="bike-btn four-stroke" data-name="KLX 450" data-type="4-stroke">KLX 450 (4T)</button>
+            <button class="bike-btn four-stroke" data-name="CRF 450R" data-type="4-stroke">CRF 450R (4T)</button>
+            <button class="bike-btn four-stroke" data-name="YZ 450F" data-type="4-stroke">YZ 450F (4T)</button>
+            <button class="bike-btn two-stroke" data-name="KX 250" data-type="2-stroke">KX 250 (2T)</button>
+            <button class="bike-btn two-stroke" data-name="CR 250" data-type="2-stroke">CR 250 (2T)</button>
+            <button class="bike-btn two-stroke" data-name="YZ 250" data-type="2-stroke">YZ 250 (2T)</button>
+        </div>
+        <div class="controls-info">
+            <p><strong>[UP]</strong> Gas | <strong>[DOWN]</strong> Brake</p>
+            <p><strong>[LEFT] / [RIGHT]</strong> Lean</p>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="game.js"></script>
 </body>
 </html>
