@@ -1,274 +1,273 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
 
-// Resize canvas
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-// --- GAME STATE ---
-let gameState = 'menu'; // 'menu' or 'playing'
+let gameState = 'menu';
 let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
-
 window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// --- BIKE & PHYSICS ---
+// --- SCORING SYSTEM ---
+let totalScore = 0;
+let airTimeFrames = 0;
+let inAir = false;
+let rotationInAir = 0;
+
+function showJumpAlert(text) {
+    const alertDiv = document.getElementById('jumpAlert');
+    alertDiv.innerHTML = text;
+    alertDiv.classList.remove('show-alert');
+    void alertDiv.offsetWidth; // Trigger reflow
+    alertDiv.classList.add('show-alert');
+}
+
+// --- BIKE & 2-WHEEL PHYSICS ---
 const bike = {
-    x: 0,
-    y: 0,
-    vx: 0,
-    vy: 0,
-    angle: 0,
-    vAngle: 0,
-    speed: 0,
-    rpm: 1500,
-    name: '',
-    type: '4-stroke',
-    color: '#ff4444'
+    x: 0, y: -100, vx: 0, vy: 0, angle: 0, spin: 0, speed: 0, rpm: 1500, type: '4-stroke', color: '#ff4444',
+    wheelbase: 40, // Distance between wheels
+    suspensionStiffness: 0.15,
+    damping: 0.85
 };
+// Wheel positions relative to bike center
+let rearWheelY = 0; 
+let frontWheelY = 0;
 
-const physics = {
-    gravity: 0.25,
-    friction: 0.98,
-    acceleration: 0.3,
-    maxSpeed: 15
-};
-
-// --- TERRAIN GENERATION ---
+// --- TERRAIN GENERATION (Different Levels/Features) ---
 const terrain = [];
-const segmentLength = 20;
+const segmentLength = 15;
 function generateTerrain() {
-    let y = 400;
-    for (let i = 0; i < 2000; i++) {
-        // Create rolling hills using sine waves
-        y += Math.sin(i * 0.1) * 5 + Math.sin(i * 0.03) * 10;
+    let y = 500;
+    for (let i = 0; i < 4000; i++) {
+        // Build actual motocross tracks:
+        if (i % 200 < 20) {
+            y -= 6; // Steep Jump Ramp
+        } else if (i % 200 > 30 && i % 200 < 50) {
+            y += 4; // Downhill landing
+        } else if (i % 100 > 80) {
+            y += Math.sin(i) * 15; // Whoops section
+        } else {
+            y += Math.sin(i * 0.05) * 2; // Flat bumpy dirt
+        }
         terrain.push(y);
     }
 }
 generateTerrain();
 
-// --- DIRT PARTICLES ---
-const particles = [];
-function spawnDirt() {
-    if (bike.speed > 1 && keys['ArrowUp']) {
-        for(let i=0; i<3; i++){
-            particles.push({
-                x: bike.x - 20, 
-                y: bike.y + 15,
-                vx: -Math.random() * 5 - bike.speed * 0.5,
-                vy: -Math.random() * 5,
-                life: 1.0,
-                size: Math.random() * 4 + 2
-            });
-        }
-    }
+function getTerrainY(worldX) {
+    let index = Math.floor(worldX / segmentLength);
+    if (index < 0) index = 0;
+    if (index >= terrain.length - 1) index = terrain.length - 2;
+    let t1 = terrain[index]; let t2 = terrain[index + 1];
+    let percent = (worldX % segmentLength) / segmentLength;
+    return t1 + (t2 - t1) * percent;
 }
 
+// --- AUDIO ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let oscillator, gainNode;
+function initAudio(type) {
+    if (oscillator) oscillator.stop();
+    oscillator = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    oscillator.type = (type === '2-stroke') ? 'sawtooth' : 'square';
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.value = 0.08;
+    oscillator.start();
+}
+function updateAudio() {
+    if (gameState !== 'playing') return;
+    let baseFreq = (bike.type === '2-stroke') ? 65 : 30;
+    oscillator.frequency.setTargetAtTime(baseFreq + (bike.rpm / 20), audioCtx.currentTime, 0.05);
+    document.getElementById('rpmDisplay').innerText = Math.round(bike.rpm);
+    document.getElementById('speedDisplay').innerText = Math.round(bike.vx * 2);
+}
+
+// --- DIRT PARTICLES ---
+const particles = [];
 function updateParticles() {
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.2; // gravity on dirt
-        p.life -= 0.02;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.03;
         if (p.life <= 0) particles.splice(i, 1);
     }
-}
-
-// --- AUDIO ENGINE ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let oscillator, gainNode, filterNode;
-
-function initAudio(type) {
-    if (oscillator) oscillator.stop();
-    
-    oscillator = audioCtx.createOscillator();
-    filterNode = audioCtx.createBiquadFilter();
-    gainNode = audioCtx.createGain();
-    
-    // 2-stroke: buzzy sawtooth. 4-stroke: throaty square.
-    oscillator.type = (type === '2-stroke') ? 'sawtooth' : 'square';
-    
-    // Filter to make it sound more like an engine and less like an arcade beep
-    filterNode.type = 'lowpass';
-    filterNode.frequency.value = (type === '2-stroke') ? 2000 : 1000;
-
-    oscillator.connect(filterNode);
-    filterNode.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    gainNode.gain.value = 0.1;
-    oscillator.start();
-}
-
-function updateAudio() {
-    if (gameState !== 'playing') return;
-    
-    let baseFreq = (bike.type === '2-stroke') ? 60 : 35;
-    let rpmPitch = baseFreq + (bike.rpm / 25);
-    
-    // Smooth pitch sliding
-    oscillator.frequency.setTargetAtTime(rpmPitch, audioCtx.currentTime, 0.05);
-    
-    // Update HUD
-    document.getElementById('rpmDisplay').innerText = Math.round(bike.rpm);
-    document.getElementById('speedDisplay').innerText = Math.round(bike.speed * 2);
 }
 
 // --- MAIN LOOP ---
 function update() {
     if (gameState !== 'playing') return;
 
-    // Throttle & Braking
-    if (keys['ArrowUp']) {
-        bike.speed += physics.acceleration;
-        bike.rpm = Math.min(12000, bike.rpm + 400);
-        spawnDirt();
-    } else if (keys['ArrowDown']) {
-        bike.speed -= physics.acceleration * 1.5;
-        bike.rpm = Math.max(1500, bike.rpm - 300);
+    // Realistic Physics calculations
+    bike.vy += 0.4; // Gravity
+    
+    // Find where the wheels are in the world
+    let rwX = bike.x - Math.cos(bike.angle) * (bike.wheelbase/2);
+    let rwY = bike.y - Math.sin(bike.angle) * (bike.wheelbase/2);
+    let fwX = bike.x + Math.cos(bike.angle) * (bike.wheelbase/2);
+    let fwY = bike.y + Math.sin(bike.angle) * (bike.wheelbase/2);
+
+    let gRearY = getTerrainY(rwX);
+    let gFrontY = getTerrainY(fwX);
+
+    let rearTouches = (rwY + 15) >= gRearY;
+    let frontTouches = (fwY + 15) >= gFrontY;
+
+    // Jump Logic & Scoring
+    if (!rearTouches && !frontTouches) {
+        if (!inAir) inAir = true;
+        airTimeFrames++;
+        rotationInAir += bike.spin;
     } else {
-        bike.speed *= physics.friction;
-        bike.rpm = Math.max(1500, bike.rpm - 150);
+        if (inAir && airTimeFrames > 30) { // Landed a jump!
+            let airPoints = Math.floor(airTimeFrames * 5);
+            let flips = Math.floor(Math.abs(rotationInAir) / (Math.PI * 2));
+            let flipPoints = flips * 1000;
+            let jumpTotal = airPoints + flipPoints;
+            totalScore += jumpTotal;
+            document.getElementById('scoreDisplay').innerText = totalScore;
+            
+            let message = flips > 0 ? `${flips}x FLIP! +${jumpTotal}` : `BIG AIR! +${jumpTotal}`;
+            showJumpAlert(message);
+        }
+        inAir = false;
+        airTimeFrames = 0;
+        rotationInAir = 0;
     }
-    
-    // Cap speed
-    if (bike.speed > physics.maxSpeed) bike.speed = physics.maxSpeed;
-    if (bike.speed < 0) bike.speed = 0;
 
-    // X position updates based on speed
-    bike.x += bike.speed;
-
-    // Leaning
-    if (keys['ArrowLeft']) bike.vAngle -= 0.01;
-    if (keys['ArrowRight']) bike.vAngle += 0.01;
-    bike.angle += bike.vAngle;
-    bike.vAngle *= 0.9; // air resistance on rotation
-
-    // Terrain Collision (Simple Raycast downward)
-    let terrainIndex = Math.floor(bike.x / segmentLength);
-    // Ensure we don't go out of bounds of our terrain array
-    if (terrainIndex >= terrain.length - 1) terrainIndex = terrain.length - 2; 
-    
-    // Interpolate exact ground Y
-    let t1 = terrain[terrainIndex];
-    let t2 = terrain[terrainIndex + 1];
-    let percent = (bike.x % segmentLength) / segmentLength;
-    let groundY = t1 + (t2 - t1) * percent;
-
-    // Gravity & Ground Interaction
-    bike.vy += physics.gravity;
-    bike.y += bike.vy;
-
-    if (bike.y > groundY - 20) {
-        bike.y = groundY - 20;
-        bike.vy = 0;
+    // Suspension Physics
+    rearWheelY = 15; frontWheelY = 15; // default extended
+    if (rearTouches) {
+        let pushUp = (gRearY - rwY) * bike.suspensionStiffness;
+        bike.vy -= pushUp;
+        bike.spin -= pushUp * 0.005; // Pushes tail up
+        rearWheelY -= pushUp; // Visually compress
         
-        // Auto-align bike angle to slope slightly when on ground
-        let targetAngle = Math.atan2(t2 - t1, segmentLength);
-        bike.angle += (targetAngle - bike.angle) * 0.1;
+        // Acceleration only works if rear tire is on dirt
+        if (keys['ArrowUp']) {
+            bike.vx += Math.cos(bike.angle) * 0.4;
+            bike.rpm = Math.min(11000, bike.rpm + 500);
+            
+            // Spawn roost (dirt spray)
+            particles.push({ x: rwX, y: rwY+10, vx: -bike.vx - Math.random()*5, vy: -Math.random()*5, life: 1, size: Math.random()*5+2 });
+        }
     }
+    
+    if (frontTouches) {
+        let pushUp = (gFrontY - fwY) * bike.suspensionStiffness;
+        bike.vy -= pushUp;
+        bike.spin += pushUp * 0.005; // Pushes nose up
+        frontWheelY -= pushUp; // Visually compress
+    }
+
+    // Air Control (Leaning)
+    if (keys['ArrowLeft']) { bike.spin -= 0.003; }
+    if (keys['ArrowRight']) { bike.spin += 0.003; }
+    
+    // Friction & RPM Decay
+    bike.vx *= 0.98;
+    bike.vy *= bike.damping;
+    bike.spin *= 0.95;
+    if (!keys['ArrowUp']) bike.rpm = Math.max(1500, bike.rpm - 200);
+
+    bike.angle += bike.spin;
+    bike.x += bike.vx;
+    bike.y += bike.vy;
 
     updateParticles();
     updateAudio();
 }
 
 function draw() {
-    // Clear & Sky
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (gameState === 'playing') {
-        // Camera logic (Keep bike in lower-left third of screen)
         ctx.save();
         ctx.translate(canvas.width / 3 - bike.x, canvas.height / 1.5 - bike.y);
 
-        // Draw Terrain
+        // --- DRAW MULTI-LAYER TERRAIN ---
+        let startX = Math.floor((bike.x - canvas.width) / segmentLength);
+        let endX = Math.floor((bike.x + canvas.width * 2) / segmentLength);
+        
+        // Layer 1: Deep Earth (Dark Brown)
         ctx.beginPath();
-        ctx.moveTo(bike.x - canvas.width, 2000); // Bottom left
-        for (let i = Math.max(0, Math.floor((bike.x - canvas.width)/segmentLength)); i < Math.floor((bike.x + canvas.width*2)/segmentLength); i++) {
-            if (i < terrain.length) {
-                ctx.lineTo(i * segmentLength, terrain[i]);
-            }
+        ctx.moveTo((startX) * segmentLength, 3000);
+        for (let i = Math.max(0, startX); i < endX; i++) {
+            if (i < terrain.length) ctx.lineTo(i * segmentLength, terrain[i] + 40); // Offset down
         }
-        ctx.lineTo(bike.x + canvas.width * 2, 2000); // Bottom right
-        ctx.fillStyle = '#3a2318'; // Dirt brown
+        ctx.lineTo(endX * segmentLength, 3000);
+        ctx.fillStyle = '#26160f';
         ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#5c3a21'; // Lighter dirt edge
+
+        // Layer 2: Top Soil (Lighter Brown/Orange)
+        ctx.beginPath();
+        ctx.moveTo((startX) * segmentLength, 3000);
+        for (let i = Math.max(0, startX); i < endX; i++) {
+            if (i < terrain.length) ctx.lineTo(i * segmentLength, terrain[i]);
+        }
+        ctx.lineTo(endX * segmentLength, 3000);
+        ctx.fillStyle = '#4a2e1b';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#6b442a'; // Crust
         ctx.stroke();
 
         // Draw Particles
         particles.forEach(p => {
-            ctx.fillStyle = `rgba(92, 58, 33, ${p.life})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillStyle = `rgba(107, 68, 42, ${p.life})`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
         });
 
-        // Draw Bike
+        // --- DRAW BIKE (Realistic 2-Part Assembly) ---
         ctx.save();
         ctx.translate(bike.x, bike.y);
         ctx.rotate(bike.angle);
-        
-        // Bike Frame
-        ctx.fillStyle = bike.color;
-        ctx.beginPath();
-        ctx.moveTo(-15, -5);
-        ctx.lineTo(15, -10);
-        ctx.lineTo(10, 5);
-        ctx.lineTo(-10, 5);
-        ctx.fill();
-        
-        // Wheels
-        ctx.fillStyle = '#222';
-        ctx.beginPath();
-        ctx.arc(-20, 10, 12, 0, Math.PI*2); // Rear
-        ctx.arc(20, 10, 12, 0, Math.PI*2);  // Front
-        ctx.fill();
-        
-        // Rider (Simple)
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(-5, -25, 10, 20); // Body
-        ctx.beginPath();
-        ctx.arc(0, -30, 6, 0, Math.PI*2); // Helmet
-        ctx.fill();
 
-        ctx.restore();
+        // Draw Wheels (They move up/down independently based on terrain)
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(-bike.wheelbase/2, rearWheelY, 14, 0, Math.PI*2); ctx.fill(); // Rear
+        ctx.beginPath(); ctx.arc(bike.wheelbase/2, frontWheelY, 14, 0, Math.PI*2); ctx.fill(); // Front
+        
+        // Draw Forks/Swingarm connecting chassis to wheels
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-bike.wheelbase/2, rearWheelY); ctx.stroke(); // Swingarm
+        ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(bike.wheelbase/2, frontWheelY); ctx.stroke(); // Front Forks
+
+        // Draw Frame
+        ctx.fillStyle = bike.color;
+        ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(15, -12); ctx.lineTo(10, 5); ctx.lineTo(-10, 5); ctx.fill();
+        
+        // Exhaust
+        ctx.fillStyle = '#555'; ctx.fillRect(-22, 0, 15, 4);
+        
+        // Rider
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-5, -30, 12, 25); // Body
+        ctx.beginPath(); ctx.arc(5, -35, 8, 0, Math.PI*2); ctx.fill(); // Helmet
+
+        ctx.restore(); // End Bike
         ctx.restore(); // End Camera
     }
 
-    requestAnimationFrame(() => {
-        update();
-        draw();
-    });
+    requestAnimationFrame(() => { update(); draw(); });
 }
 
-// --- INIT ---
+// Start Game Logic
 document.querySelectorAll('.bike-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // Must resume AudioContext after a user gesture
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
         bike.name = e.target.getAttribute('data-name');
         bike.type = e.target.getAttribute('data-type');
-        bike.color = bike.type === '4-stroke' ? '#ff4444' : '#44aaff';
+        bike.color = bike.type === '4-stroke' ? '#ff3333' : '#33aaff';
         
         document.getElementById('bikeNameDisplay').innerText = bike.name;
         document.getElementById('menu').style.display = 'none';
         document.getElementById('hud').style.display = 'block';
         
-        bike.x = 0;
-        bike.y = 0;
-        bike.speed = 0;
-        
+        bike.x = 0; bike.y = 0; bike.vx = 0; bike.vy = 0; bike.angle = 0; totalScore = 0;
         initAudio(bike.type);
         gameState = 'playing';
     });
 });
 
-// Start loop
 draw();
