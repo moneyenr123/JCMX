@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <title>JCMX – Dirt Bike Hillclimb</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- MAIN HUD WRAPPER -->
+    <!-- HUD / UI -->
     <div id="hud">
         <div id="hud-top">
             <div id="hud-title-block">
@@ -92,12 +96,12 @@
         </div>
     </div>
 
-    <!-- PAUSE / OVERLAY PANEL -->
+    <!-- Simple overlay just for crash/finish -->
     <div id="overlay" class="hidden">
         <div id="overlay-panel">
             <h2 id="overlay-title">Paused</h2>
             <p id="overlay-message">
-                Press <strong>Space</strong> to restart or <strong>Esc</strong> to resume.
+                Press <strong>Space</strong> to restart.
             </p>
             <div id="overlay-stats">
                 <div class="overlay-stat-row">
@@ -117,17 +121,13 @@
                     <span id="overlay-best-distance" class="overlay-stat-value">0 m</span>
                 </div>
             </div>
-            <div id="overlay-buttons">
-                <button id="overlay-restart" class="hud-btn">Restart Level</button>
-                <button id="overlay-resume" class="hud-btn">Resume Ride</button>
-            </div>
         </div>
     </div>
 
-    <!-- CANVAS -->
+    <!-- Game canvas -->
     <canvas id="gameCanvas" width="1100" height="550"></canvas>
 
-    <!-- SCRIPT -->
+    <!-- Game logic -->
     <script src="game.js"></script>
 </body>
 </html>
