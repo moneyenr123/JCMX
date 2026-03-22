@@ -7,22 +7,37 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">
-        <h1>JCMX</h1>
-
-        <div id="bike-select">
-            <button data-bike="xk">Kawasaki XK 85</button>
-            <button data-bike="rc">KTM RC 85</button>
-            <button data-bike="ym">Yamaha YM 85</button>
+    <div id="hud">
+        <div id="title">JCMX</div>
+        <div id="info">
+            <span id="brandLabel">XK 85</span> |
+            <span id="strokeLabel">2‑Stroke</span> |
+            <span id="speedLabel">0 km/h</span> |
+            <span id="flipLabel">Flips: 0</span> |
+            <span id="distanceLabel">0 m</span>
         </div>
 
-        <div id="stroke-select">
-            <button data-stroke="2">2‑Stroke</button>
-            <button data-stroke="4">4‑Stroke</button>
+        <div id="controls">
+            <div>
+                <span class="label">Brand:</span>
+                <button data-bike="xk">Kawasaki XK</button>
+                <button data-bike="rc">KTM RC</button>
+                <button data-bike="ym">Yamaha YM</button>
+            </div>
+            <div>
+                <span class="label">Stroke:</span>
+                <button data-stroke="2">2‑Stroke</button>
+                <button data-stroke="4">4‑Stroke</button>
+            </div>
+        </div>
+
+        <div id="help">
+            Arrow Up = Throttle • Arrow Down = Brake  
+            Arrow Left/Right = Tilt • Space = Restart
         </div>
     </div>
 
-    <canvas id="gameCanvas" width="900" height="500"></canvas>
+    <canvas id="gameCanvas" width="1100" height="550"></canvas>
 
     <script src="game.js"></script>
 </body>
