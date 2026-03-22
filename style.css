@@ -1,133 +1,259 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>JCMX – Dirt Bike Hillclimb</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <!-- MAIN HUD WRAPPER -->
-    <div id="hud">
-        <div id="hud-top">
-            <div id="hud-title-block">
-                <span id="hud-title">JCMX</span>
-                <span id="hud-subtitle">Dirt Bike Hillclimb</span>
-            </div>
-            <div id="hud-session">
-                <span id="hud-level-label">Level: Hills 1</span>
-                <span id="hud-status-label">Status: Riding</span>
-            </div>
-        </div>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-        <div id="hud-middle">
-            <div class="hud-row">
-                <span class="hud-stat-label">Bike:</span>
-                <span id="brandLabel" class="hud-stat-value">XK 85</span>
+html, body {
+    width: 100%;
+    height: 100%;
+}
 
-                <span class="hud-stat-label">Stroke:</span>
-                <span id="strokeLabel" class="hud-stat-value">2‑Stroke</span>
+body {
+    background: radial-gradient(circle at top, #151515 0, #050505 55%, #000000 100%);
+    color: #f5f5f5;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+}
 
-                <span class="hud-stat-label">Speed:</span>
-                <span id="speedLabel" class="hud-stat-value">0 km/h</span>
-            </div>
+/* HUD WRAPPER */
+#hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 10px 12px;
+    max-width: 640px;
+    backdrop-filter: blur(4px);
+}
 
-            <div class="hud-row">
-                <span class="hud-stat-label">Flips:</span>
-                <span id="flipLabel" class="hud-stat-value">0</span>
+/* TOP SECTION */
+#hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+}
 
-                <span class="hud-stat-label">Distance:</span>
-                <span id="distanceLabel" class="hud-stat-value">0 m</span>
+#hud-title-block {
+    display: flex;
+    flex-direction: column;
+}
 
-                <span class="hud-stat-label">Best:</span>
-                <span id="bestDistanceLabel" class="hud-stat-value">0 m</span>
-            </div>
-        </div>
+#hud-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
 
-        <div id="hud-controls">
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Brand:</span>
-                <button class="hud-btn" data-bike="xk">Kawasaki XK</button>
-                <button class="hud-btn" data-bike="rc">KTM RC</button>
-                <button class="hud-btn" data-bike="ym">Yamaha YM</button>
-            </div>
+#hud-subtitle {
+    font-size: 11px;
+    opacity: 0.8;
+}
 
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Stroke:</span>
-                <button class="hud-btn" data-stroke="2">2‑Stroke</button>
-                <button class="hud-btn" data-stroke="4">4‑Stroke</button>
-            </div>
+#hud-session {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 11px;
+}
 
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Level:</span>
-                <select id="levelSelect" class="hud-select">
-                    <option value="0">Hills 1</option>
-                    <option value="1">Hills 2</option>
-                    <option value="2">Big Jumps</option>
-                    <option value="3">Whoops</option>
-                    <option value="4">Steep Climb</option>
-                    <option value="5">MX Track</option>
-                    <option value="6">Sand Dunes</option>
-                    <option value="7">Night Ride</option>
-                    <option value="8">Rocky Climb</option>
-                    <option value="9">Mega Hill</option>
-                </select>
-            </div>
-        </div>
+#hud-level-label {
+    font-weight: 600;
+}
 
-        <div id="hud-help">
-            <div class="hud-help-row">
-                <span class="hud-help-key">Up</span> = Throttle
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Down</span> = Brake
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Left / Right</span> = Tilt
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Space</span> = Restart
-            </div>
-            <div class="hud-help-row">
-                Land wheels‑first or you crash. Full 360° = flip. Go as far as you can.
-            </div>
-        </div>
-    </div>
+#hud-status-label {
+    opacity: 0.85;
+}
 
-    <!-- PAUSE / OVERLAY PANEL -->
-    <div id="overlay" class="hidden">
-        <div id="overlay-panel">
-            <h2 id="overlay-title">Paused</h2>
-            <p id="overlay-message">
-                Press <strong>Space</strong> to restart or <strong>Esc</strong> to resume.
-            </p>
-            <div id="overlay-stats">
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Level:</span>
-                    <span id="overlay-level-name" class="overlay-stat-value">Hills 1</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Distance:</span>
-                    <span id="overlay-distance" class="overlay-stat-value">0 m</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Flips:</span>
-                    <span id="overlay-flips" class="overlay-stat-value">0</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Best Distance:</span>
-                    <span id="overlay-best-distance" class="overlay-stat-value">0 m</span>
-                </div>
-            </div>
-            <div id="overlay-buttons">
-                <button id="overlay-restart" class="hud-btn">Restart Level</button>
-                <button id="overlay-resume" class="hud-btn">Resume Ride</button>
-            </div>
-        </div>
-    </div>
+/* MIDDLE STATS */
+#hud-middle {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px 0;
+    margin: 4px 0;
+}
 
-    <!-- CANVAS -->
-    <canvas id="gameCanvas" width="1100" height="550"></canvas>
+.hud-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
 
-    <!-- SCRIPT -->
-    <script src="game.js"></script>
-</body>
-</html>
+.hud-stat-label {
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.hud-stat-value {
+    min-width: 40px;
+}
+
+/* CONTROLS SECTION */
+#hud-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.hud-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.hud-controls-label {
+    font-weight: 600;
+}
+
+/* BUTTONS / SELECTS */
+.hud-btn {
+    background: linear-gradient(135deg, #181818, #101010);
+    color: #f5f5f5;
+    border: 1px solid #333;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+}
+
+.hud-btn:hover {
+    background: linear-gradient(135deg, #262626, #151515);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.12);
+}
+
+.hud-btn:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+
+.hud-select {
+    background: #151515;
+    color: #f5f5f5;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 11px;
+}
+
+/* HELP TEXT */
+#hud-help {
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
+.hud-help-row {
+    margin-top: 1px;
+}
+
+.hud-help-key {
+    font-weight: 600;
+}
+
+.hud-help-sep {
+    margin: 0 4px;
+    opacity: 0.7;
+}
+
+/* OVERLAY */
+#overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 0, rgba(0, 0, 0, 0.95) 60%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+#overlay.hidden {
+    display: none;
+}
+
+#overlay-panel {
+    background: #101010;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 18px 22px;
+    width: 320px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+#overlay-title {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+
+#overlay-message {
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+}
+
+#overlay-stats {
+    font-size: 12px;
+    margin-bottom: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px 0;
+}
+
+.overlay-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.overlay-stat-label {
+    font-weight: 600;
+}
+
+.overlay-stat-value {
+    opacity: 0.9;
+}
+
+/* CANVAS */
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    border-top: 2px solid #111;
+    background: #050505;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    #hud {
+        max-width: 90%;
+    }
+
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    #hud-top {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    #hud-session {
+        align-items: flex-start;
+    }
+
+    #hud-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
