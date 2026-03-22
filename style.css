@@ -16,7 +16,6 @@ body {
     overflow: hidden;
 }
 
-/* HUD WRAPPER */
 #hud {
     position: absolute;
     top: 10px;
