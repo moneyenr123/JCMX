@@ -2,46 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JCMX - Realistic Physics Update</title>
-    
-    <link rel="icon" type="image/png" href="../favicon.png">
-    <link rel="apple-touch-icon" href="../favicon.png">
-    <meta name="apple-mobile-web-app-title" content="JC Mini Games">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <title>JCMX</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="ui">
+        <h1>JCMX</h1>
 
-    <div id="hud">
-        <div class="hud-item">Bike: <span id="bikeNameDisplay">None</span></div>
-        <div class="hud-item">Speed: <span id="speedDisplay">0</span> mph</div>
-        <div class="hud-item">RPM: <span id="rpmDisplay">0</span></div>
-        <div class="hud-item" style="margin-top: 10px; font-size: 1.3rem;">Score: <span id="scoreDisplay" style="color: #00ff88;">0</span></div>
-    </div>
-    
-    <div id="jumpAlert"></div>
-
-    <div id="menu" class="glass-panel">
-        <h1>JCMX Pro</h1>
-        <h2>Select Your Ride</h2>
-        <div class="bike-grid">
-            <button class="bike-btn four-stroke" data-name="KLX 450" data-type="4-stroke">KLX 450 (4T)</button>
-            <button class="bike-btn four-stroke" data-name="CRF 450R" data-type="4-stroke">CRF 450R (4T)</button>
-            <button class="bike-btn four-stroke" data-name="YZ 450F" data-type="4-stroke">YZ 450F (4T)</button>
-            <button class="bike-btn two-stroke" data-name="KX 250" data-type="2-stroke">KX 250 (2T)</button>
-            <button class="bike-btn two-stroke" data-name="CR 250" data-type="2-stroke">CR 250 (2T)</button>
-            <button class="bike-btn two-stroke" data-name="YZ 250" data-type="2-stroke">YZ 250 (2T)</button>
+        <div id="bike-select">
+            <button data-bike="xk">Kawasaki XK 85</button>
+            <button data-bike="rc">KTM RC 85</button>
+            <button data-bike="ym">Yamaha YM 85</button>
         </div>
-        <div class="controls-info">
-            <p><strong>[UP]</strong> Gas | <strong>[DOWN]</strong> Brake</p>
-            <p><strong>[LEFT] / [RIGHT]</strong> Lean & Flip in Air</p>
+
+        <div id="stroke-select">
+            <button data-stroke="2">2‑Stroke</button>
+            <button data-stroke="4">4‑Stroke</button>
         </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
 
     <script src="game.js"></script>
 </body>
