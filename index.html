@@ -218,10 +218,10 @@
 
     // ===== Bikes =====
     const bikes = [
-      { id: "xk",  color: "#00ff66", weight: 1.0, power: 1.05, grip: 1.0, airControl: 1.0 },
-      { id: "zy",  color: "#4da3ff", weight: 0.98, power: 1.0,  grip: 1.05, airControl: 1.1 },
-      { id: "rc",  color: "#ff3b4f", weight: 1.05, power: 1.1,  grip: 0.95, airControl: 0.95 },
-      { id: "cfr", color: "#ff3b4f", weight: 1.02, power: 1.15, grip: 1.05, airControl: 1.1 }
+      { id: "xk",  color: "#00ff66", weight: 1.0,  power: 1.05, grip: 1.05, airControl: 1.1 },
+      { id: "zy",  color: "#4da3ff", weight: 0.98, power: 1.0,  grip: 1.1,  airControl: 1.2 },
+      { id: "rc",  color: "#ff3b4f", weight: 1.05, power: 1.1,  grip: 1.0,  airControl: 1.0 },
+      { id: "cfr", color: "#ff3b4f", weight: 1.02, power: 1.15, grip: 1.1,  airControl: 1.15 }
     ];
     let currentBikeIndex = 0;
 
@@ -286,12 +286,12 @@
       levels.push({
         id: i,
         length: 2600 + i * 90,
-        gapChance: 0.02 + i * 0.0015,
-        spikeChance: 0.015 + i * 0.002,
-        slopeIntensity: 0.7 + i * 0.015,
-        checkpointEvery: 650 - i * 4,
-        gravity: 0.55 + i * 0.004,
-        maxSpeed: 16 + i * 0.15
+        gapChance: 0.01 + i * 0.0008,      // less gaps
+        spikeChance: 0.008 + i * 0.0012,   // fewer spikes
+        slopeIntensity: 0.6 + i * 0.012,   // smoother but still harder later
+        checkpointEvery: 700 - i * 3,
+        gravity: 0.5 + i * 0.003,          // slightly softer gravity
+        maxSpeed: 15 + i * 0.14
       });
     }
 
@@ -310,17 +310,18 @@
       let phase = 0;
 
       while (x <= length) {
-        const bigRoll = Math.sin(phase * 0.35) * 60;
-        const medium = Math.sin(phase * 0.9) * 25;
-        const small = Math.sin(phase * 2.1) * 10;
+        const bigRoll = Math.sin(phase * 0.35) * 55;
+        const medium = Math.sin(phase * 0.9) * 22;
+        const small = Math.sin(phase * 2.1) * 9;
         let y = baseY + (bigRoll + medium + small) * levelConfig.slopeIntensity;
 
-        // Gentle random noise
-        y += (Math.random() - 0.5) * 6;
+        // Gentle random noise + subtle ruts
+        y += (Math.random() - 0.5) * 5;
+        y += Math.sin(x * 0.02) * 3;
 
-        // Occasional gap
-        if (Math.random() < levelConfig.gapChance && x > 250 && x < length - 350) {
-          y = H() + 200;
+        // Occasional gap (but not insane)
+        if (Math.random() < levelConfig.gapChance && x > 350 && x < length - 450) {
+          y = H() + 220;
           obstacles.push({
             type: "gap",
             xStart: x - step,
@@ -431,6 +432,16 @@
         tctx.fillRect(x, y, 1.5, 1.5);
       }
 
+      // Subtle horizontal ruts
+      tctx.strokeStyle = "rgba(0,0,0,0.25)";
+      tctx.lineWidth = 1;
+      for (let y = 10; y < size; y += 14) {
+        tctx.beginPath();
+        tctx.moveTo(0, y + Math.random() * 3);
+        tctx.lineTo(size, y + Math.random() * 3);
+        tctx.stroke();
+      }
+
       dirtPattern = ctx.createPattern(tex, "repeat");
     }
 
@@ -464,7 +475,7 @@
     function resetBike() {
       const startY = getTrackYRaw(100);
       bike.x = 100;
-      bike.y = startY - 22;
+      bike.y = startY - 24;
       bike.vx = 0;
       bike.vy = 0;
       bike.angle = 0;
@@ -528,7 +539,7 @@
       }
 
       if (bike.dead || bike.finished) {
-        bike.vx *= 0.98;
+        bike.vx *= 0.985;
         bike.vy += levelConfig.gravity * bikeType.weight;
         bike.x += bike.vx;
         bike.y += bike.vy;
@@ -539,12 +550,12 @@
 
       // Engine / brake
       if (keys.up) {
-        const engineForce = 0.42 * bikeType.power;
+        const engineForce = 0.40 * bikeType.power;
         bike.vx += engineForce;
       }
 
       if (keys.brake) {
-        const brakeForce = 0.55 * bikeType.grip;
+        const brakeForce = 0.5 * bikeType.grip;
         if (bike.vx > 0) {
           bike.vx -= brakeForce;
           if (bike.vx < 0) bike.vx = 0;
@@ -557,12 +568,12 @@
 
       // Air control
       if (!bike.onGround) {
-        const airTorque = 0.0032 * bikeType.airControl * dt;
+        const airTorque = 0.0030 * bikeType.airControl * dt;
         if (keys.left) bike.angVel -= airTorque;
         if (keys.right) bike.angVel += airTorque;
       } else {
-        if (keys.left) bike.vx -= 0.02 * bikeType.grip;
-        if (keys.right) bike.vx += 0.02 * bikeType.grip;
+        if (keys.left) bike.vx -= 0.018 * bikeType.grip;
+        if (keys.right) bike.vx += 0.018 * bikeType.grip;
       }
 
       // Gravity
@@ -574,41 +585,44 @@
       bike.angle += bike.angVel;
 
       // Damping
-      bike.vx *= 0.99;
+      bike.vx *= 0.992;
       bike.angVel *= 0.985;
 
       // Ground collision
       const groundY = getTrackYRaw(bike.x);
-      if (bike.y >= groundY - 20) {
+      if (bike.y >= groundY - 22) {
         const impactSpeed = bike.vy;
         const { nx, ny } = getTrackNormal(bike.x);
         const groundAngle = Math.atan2(ny, nx) - Math.PI / 2;
         const angleDiff = Math.abs(((bike.angle - groundAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
 
-        if (impactSpeed > 9 && angleDiff > 0.75) {
+        // More forgiving crash thresholds
+        if (impactSpeed > 13 && angleDiff > 1.0) {
           killRider();
           return;
         }
 
         bike.vy = 0;
-        bike.y = groundY - 20;
+        bike.y = groundY - 22;
         bike.onGround = true;
 
-        bike.angle += (groundAngle - bike.angle) * 0.25;
-        bike.angVel *= 0.4;
+        // Stronger alignment to ground for stability
+        bike.angle += (groundAngle - bike.angle) * 0.35;
+        bike.angVel *= 0.35;
       } else {
         bike.onGround = false;
       }
 
-      // Upside‑down in air
-      if (!bike.onGround && Math.abs(((bike.angle + Math.PI) % (Math.PI * 2)) - Math.PI) > 1.9) {
+      // Upside‑down in air (more forgiving)
+      if (!bike.onGround && Math.abs(((bike.angle + Math.PI) % (Math.PI * 2)) - Math.PI) > 2.3) {
         killRider();
       }
 
       // Obstacles
       for (const o of obstacles) {
+        const sx = o.x;
         if (o.type === "spike") {
-          const dx = bike.x - o.x;
+          const dx = bike.x - sx;
           const dy = bike.y - (o.y - 5);
           if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
             killRider();
@@ -625,13 +639,13 @@
           const dist = Math.hypot(dx, dy);
           if (dist < o.radius + 18) {
             bike.lastCheckpointX = o.x;
-            bike.lastCheckpointY = getTrackYRaw(o.x) - 20;
+            bike.lastCheckpointY = getTrackYRaw(o.x) - 22;
           }
         }
       }
 
-      // Fall off world
-      if (bike.y > H() + 250) {
+      // Fall off world -> respawn at last checkpoint instead of instant death
+      if (bike.y > H() + 260) {
         bike.x = bike.lastCheckpointX;
         bike.y = bike.lastCheckpointY;
         bike.vx = 0;
@@ -788,21 +802,21 @@
 
       // Shadow
       ctx.save();
-      ctx.translate(0, 22);
-      ctx.scale(1.5, 0.45);
+      ctx.translate(0, 24);
+      ctx.scale(1.6, 0.45);
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.beginPath();
       ctx.ellipse(0, 0, 26, 11, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // Wheels
+      // Wheels (slightly bigger, MX style)
       function drawWheel(x, y) {
         ctx.lineWidth = 3;
         ctx.strokeStyle = "#000000";
         ctx.fillStyle = "#222833";
         ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.arc(x, y, 13, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
@@ -816,41 +830,44 @@
         ctx.stroke();
       }
 
-      drawWheel(-22, 10);
-      drawWheel(22, 10);
+      const rearWheelY = 10;
+      const frontWheelY = 10;
+      drawWheel(-24, rearWheelY);
+      drawWheel(24, frontWheelY);
 
-      // Frame (realistic MX‑style silhouette, generic)
+      // Frame (more realistic MX silhouette, generic)
       ctx.lineWidth = 3;
       ctx.strokeStyle = bikeType.color;
       ctx.beginPath();
-      ctx.moveTo(-22, 4);
-      ctx.lineTo(-8, -4);
+      // lower frame / swingarm
+      ctx.moveTo(-24, 4);
+      ctx.lineTo(-10, -4);
       ctx.lineTo(4, -6);
       ctx.lineTo(18, -2);
-      ctx.lineTo(24, 4);
-      ctx.lineTo(10, 8);
-      ctx.lineTo(-10, 8);
+      ctx.lineTo(26, 4);
+      ctx.lineTo(12, 10);
+      ctx.lineTo(-12, 10);
       ctx.closePath();
       ctx.stroke();
 
       // Tank / shrouds
       ctx.fillStyle = bikeType.color;
       ctx.beginPath();
-      ctx.moveTo(-6, -10);
-      ctx.lineTo(10, -10);
-      ctx.lineTo(14, -4);
-      ctx.lineTo(2, -2);
-      ctx.lineTo(-8, -4);
+      ctx.moveTo(-8, -12);
+      ctx.lineTo(10, -12);
+      ctx.lineTo(16, -6);
+      ctx.lineTo(2, -4);
+      ctx.lineTo(-10, -6);
       ctx.closePath();
       ctx.fill();
 
       // Seat
       ctx.fillStyle = "#111111";
       ctx.beginPath();
-      ctx.moveTo(-4, -12);
-      ctx.lineTo(12, -12);
-      ctx.lineTo(8, -8);
-      ctx.lineTo(-6, -8);
+      ctx.moveTo(-6, -14);
+      ctx.lineTo(12, -14);
+      ctx.lineTo(8, -10);
+      ctx.lineTo(-8, -10);
       ctx.closePath();
       ctx.fill();
 
@@ -858,14 +875,14 @@
       ctx.strokeStyle = "#d0d4e0";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(10, -6);
+      ctx.moveTo(8, -6);
       ctx.lineTo(22, 6);
       ctx.stroke();
 
       // Bars
       ctx.beginPath();
-      ctx.moveTo(-2, -16);
-      ctx.lineTo(8, -18);
+      ctx.moveTo(-2, -18);
+      ctx.lineTo(8, -20);
       ctx.stroke();
 
       // Rider
@@ -873,22 +890,22 @@
       ctx.lineWidth = 2;
       // torso
       ctx.beginPath();
-      ctx.moveTo(-2, -14);
-      ctx.lineTo(-2, -26);
+      ctx.moveTo(-2, -16);
+      ctx.lineTo(-2, -28);
       ctx.stroke();
       // head
       ctx.beginPath();
-      ctx.arc(-2, -30, 4, 0, Math.PI * 2);
+      ctx.arc(-2, -32, 4, 0, Math.PI * 2);
       ctx.fillStyle = "#f5f5f7";
       ctx.fill();
       // arms
       ctx.beginPath();
-      ctx.moveTo(-2, -20);
-      ctx.lineTo(6, -16);
+      ctx.moveTo(-2, -22);
+      ctx.lineTo(6, -18);
       ctx.stroke();
       // legs
       ctx.beginPath();
-      ctx.moveTo(-2, -14);
+      ctx.moveTo(-2, -16);
       ctx.lineTo(-10, 6);
       ctx.stroke();
 
