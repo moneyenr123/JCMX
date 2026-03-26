@@ -1,132 +1,597 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>JCMX – Dirt Bike Hillclimb</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>JCMX – Dirt Bike Game</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <style>
+    :root {
+      --bg: #05060a;
+      --fg: #f5f5f7;
+      --accent: #00ff88;
+      --accent2: #ffcc00;
+      --track: #333842;
+      --ui: #11131a;
+    }
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png">
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
+    body {
+      background: radial-gradient(circle at top, #151827 0, #05060a 55%, #000 100%);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      font-size: 1.6rem;
+      text-transform: uppercase;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    .game-shell {
+      background: linear-gradient(145deg, #05060a, #101320);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 18px 40px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    canvas {
+      background: linear-gradient(to top, #05060a 0, #101320 40%, #1a2340 100%);
+      border-radius: 12px;
+      display: block;
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--ui);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+
+    .hud-left,
+    .hud-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .pill.accent {
+      border-color: rgba(0, 255, 136, 0.7);
+      color: var(--accent);
+    }
+
+    .pill.warn {
+      border-color: rgba(255, 204, 0, 0.7);
+      color: var(--accent2);
+    }
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 0.7rem;
+      margin: 0 1px;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    footer {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      canvas {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="hud">
-        <div id="hud-top">
-            <div id="hud-title-block">
-                <span id="hud-title">JCMX</span>
-                <span id="hud-subtitle">Dirt Bike Hillclimb</span>
-            </div>
-            <div id="hud-session">
-                <span id="hud-level-label">Level: Hills 1</span>
-                <span id="hud-status-label">Status: Riding</span>
-            </div>
+  <header>
+    <h1><span>JC</span>MX</h1>
+    <div class="subtitle">Minimal dirt bike physics • Multiple bikes • Keyboard controls</div>
+  </header>
+
+  <div class="game-shell">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="hud">
+      <div class="hud-left">
+        <div class="pill accent" id="bikeLabel">Bike: kx</div>
+        <div class="pill" id="speedLabel">Speed: 0</div>
+        <div class="pill" id="airLabel">Air: 0</div>
+      </div>
+      <div class="hud-right">
+        <div class="pill">
+          <span class="key">←</span><span class="key">→</span> lean
+          <span class="key">↑</span> throttle
+          <span class="key">Space</span> brake
         </div>
-
-        <div id="hud-middle">
-            <div class="hud-row">
-                <span class="hud-stat-label">Bike:</span>
-                <span id="brandLabel" class="hud-stat-value">XK 85</span>
-
-                <span class="hud-stat-label">Stroke:</span>
-                <span id="strokeLabel" class="hud-stat-value">2‑Stroke</span>
-
-                <span class="hud-stat-label">Speed:</span>
-                <span id="speedLabel" class="hud-stat-value">0 km/h</span>
-            </div>
-
-            <div class="hud-row">
-                <span class="hud-stat-label">Flips:</span>
-                <span id="flipLabel" class="hud-stat-value">0</span>
-
-                <span class="hud-stat-label">Distance:</span>
-                <span id="distanceLabel" class="hud-stat-value">0 m</span>
-
-                <span class="hud-stat-label">Best:</span>
-                <span id="bestDistanceLabel" class="hud-stat-value">0 m</span>
-            </div>
+        <div class="pill warn">
+          Bikes:
+          <span class="key">1</span>kx
+          <span class="key">2</span>xk
+          <span class="key">3</span>yz
+          <span class="key">4</span>zy
+          <span class="key">5</span>cr
+          <span class="key">6</span>rc
+          <span class="key">7</span>crf
+          <span class="key">8</span>cfr
         </div>
-
-        <div id="hud-controls">
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Brand:</span>
-                <button class="hud-btn" data-bike="xk">Kawasaki XK</button>
-                <button class="hud-btn" data-bike="rc">KTM RC</button>
-                <button class="hud-btn" data-bike="ym">Yamaha YM</button>
-            </div>
-
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Stroke:</span>
-                <button class="hud-btn" data-stroke="2">2‑Stroke</button>
-                <button class="hud-btn" data-stroke="4">4‑Stroke</button>
-            </div>
-
-            <div class="hud-controls-group">
-                <span class="hud-controls-label">Level:</span>
-                <select id="levelSelect" class="hud-select">
-                    <option value="0">Hills 1</option>
-                    <option value="1">Hills 2</option>
-                    <option value="2">Big Jumps</option>
-                    <option value="3">Whoops</option>
-                    <option value="4">Steep Climb</option>
-                    <option value="5">MX Track</option>
-                    <option value="6">Sand Dunes</option>
-                    <option value="7">Night Ride</option>
-                    <option value="8">Rocky Climb</option>
-                    <option value="9">Mega Hill</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="hud-help">
-            <div class="hud-help-row">
-                <span class="hud-help-key">Up</span> = Throttle
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Down</span> = Brake
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Left / Right</span> = Tilt
-                <span class="hud-help-sep">•</span>
-                <span class="hud-help-key">Space</span> = Restart
-            </div>
-            <div class="hud-help-row">
-                Land wheels‑first or you crash. Full 360° = flip. Go as far as you can.
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Simple overlay just for crash/finish -->
-    <div id="overlay" class="hidden">
-        <div id="overlay-panel">
-            <h2 id="overlay-title">Paused</h2>
-            <p id="overlay-message">
-                Press <strong>Space</strong> to restart.
-            </p>
-            <div id="overlay-stats">
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Level:</span>
-                    <span id="overlay-level-name" class="overlay-stat-value">Hills 1</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Distance:</span>
-                    <span id="overlay-distance" class="overlay-stat-value">0 m</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Flips:</span>
-                    <span id="overlay-flips" class="overlay-stat-value">0</span>
-                </div>
-                <div class="overlay-stat-row">
-                    <span class="overlay-stat-label">Best Distance:</span>
-                    <span id="overlay-best-distance" class="overlay-stat-value">0 m</span>
-                </div>
-            </div>
-        </div>
-    </div>
+  <footer>
+    JCMX prototype – extend physics, art, and tracks directly in this file or split into modules.
+  </footer>
 
-    <!-- Game canvas -->
-    <canvas id="gameCanvas" width="1100" height="550"></canvas>
+  <script>
+    // --- Core setup ---
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
 
-    <!-- Game logic -->
-    <script src="game.js"></script>
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // --- Bike definitions ---
+    // kx ↔ xk, yz ↔ zy, cr ↔ rc, crf ↔ cfr
+    const bikeTypes = [
+      { id: "kx",  color: "#00ff88", weight: 1.0, power: 1.0, grip: 1.0 },
+      { id: "xk",  color: "#00d977", weight: 1.0, power: 1.05, grip: 0.95 },
+      { id: "yz",  color: "#ffdd00", weight: 0.95, power: 1.1, grip: 0.9 },
+      { id: "zy",  color: "#ffb700", weight: 1.05, power: 0.95, grip: 1.1 },
+      { id: "cr",  color: "#ff3355", weight: 1.1, power: 1.0, grip: 1.05 },
+      { id: "rc",  color: "#ff667a", weight: 1.0, power: 1.05, grip: 1.0 },
+      { id: "crf", color: "#66aaff", weight: 0.98, power: 1.15, grip: 0.95 },
+      { id: "cfr", color: "#3f7fd9", weight: 1.02, power: 1.0, grip: 1.15 }
+    ];
+
+    let currentBikeIndex = 0;
+
+    // --- Input state ---
+    const keys = {
+      left: false,
+      right: false,
+      up: false,
+      brake: false
+    };
+
+    window.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "ArrowLeft":
+          keys.left = true;
+          break;
+        case "ArrowRight":
+          keys.right = true;
+          break;
+        case "ArrowUp":
+          keys.up = true;
+          break;
+        case " ":
+          keys.brake = true;
+          e.preventDefault();
+          break;
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+          currentBikeIndex = parseInt(e.key, 10) - 1;
+          resetBikePhysics();
+          break;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      switch (e.key) {
+        case "ArrowLeft":
+          keys.left = false;
+          break;
+        case "ArrowRight":
+          keys.right = false;
+          break;
+        case "ArrowUp":
+          keys.up = false;
+          break;
+        case " ":
+          keys.brake = false;
+          break;
+      }
+    });
+
+    // --- Track generation ---
+    const track = [];
+    const trackLength = 4000; // world units
+    const step = 20;
+
+    function generateTrack() {
+      track.length = 0;
+      let x = 0;
+      let baseY = H * 0.7;
+      let noisePhase = 0;
+      while (x <= trackLength) {
+        const height =
+          Math.sin(noisePhase) * 40 +
+          Math.sin(noisePhase * 0.37) * 25 +
+          Math.cos(noisePhase * 0.19) * 15;
+        const y = baseY + height;
+        track.push({ x, y });
+        x += step;
+        noisePhase += 0.25;
+      }
+    }
+
+    function getTrackY(worldX) {
+      if (worldX <= 0) return track[0].y;
+      if (worldX >= track[track.length - 1].x) return track[track.length - 1].y;
+
+      const i = Math.floor(worldX / step);
+      const p0 = track[i];
+      const p1 = track[i + 1];
+      const t = (worldX - p0.x) / (p1.x - p0.x);
+      return p0.y * (1 - t) + p1.y * t;
+    }
+
+    function getTrackNormal(worldX) {
+      const x0 = Math.max(0, worldX - step);
+      const x1 = Math.min(trackLength, worldX + step);
+      const y0 = getTrackY(x0);
+      const y1 = getTrackY(x1);
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      // Tangent (dx, dy) → normal (-dy, dx)
+      return { nx: -dy / len, ny: dx / len };
+    }
+
+    // --- Bike physics ---
+    const bike = {
+      x: 100,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      angle: 0,
+      angVel: 0,
+      onGround: false
+    };
+
+    const gravity = 0.6;
+    const baseEngineForce = 0.35;
+    const baseBrakeForce = 0.4;
+    const baseFriction = 0.02;
+    const maxSpeed = 18;
+    const jumpBoost = 8;
+
+    function resetBikePhysics() {
+      bike.x = 100;
+      bike.y = getTrackY(bike.x) - 20;
+      bike.vx = 0;
+      bike.vy = 0;
+      bike.angle = 0;
+      bike.angVel = 0;
+      bike.onGround = true;
+    }
+
+    generateTrack();
+    resetBikePhysics();
+
+    // --- Camera ---
+    const camera = {
+      x: 0
+    };
+
+    // --- HUD elements ---
+    const bikeLabel = document.getElementById("bikeLabel");
+    const speedLabel = document.getElementById("speedLabel");
+    const airLabel = document.getElementById("airLabel");
+
+    // --- Game loop ---
+    let lastTime = performance.now();
+
+    function update(dt) {
+      const bikeType = bikeTypes[currentBikeIndex];
+
+      // Horizontal engine/brake
+      if (keys.up) {
+        const force = baseEngineForce * bikeType.power;
+        bike.vx += force;
+      }
+
+      if (keys.brake) {
+        const brake = baseBrakeForce * bikeType.grip;
+        if (bike.vx > 0) {
+          bike.vx -= brake;
+          if (bike.vx < 0) bike.vx = 0;
+        }
+      }
+
+      // Cap speed
+      if (bike.vx > maxSpeed * bikeType.power) {
+        bike.vx = maxSpeed * bikeType.power;
+      }
+
+      // Air control (lean)
+      if (!bike.onGround) {
+        if (keys.left) bike.angVel -= 0.0025 * dt;
+        if (keys.right) bike.angVel += 0.0025 * dt;
+      } else {
+        // On ground, lean slightly affects traction
+        if (keys.left) bike.vx -= 0.01 * bikeType.grip;
+        if (keys.right) bike.vx += 0.01 * bikeType.grip;
+      }
+
+      // Gravity
+      bike.vy += gravity * bikeType.weight;
+
+      // Integrate
+      bike.x += bike.vx;
+      bike.y += bike.vy;
+      bike.angle += bike.angVel;
+
+      // Simple damping
+      bike.vx *= 1 - baseFriction;
+      bike.angVel *= 0.99;
+
+      // Ground collision
+      const groundY = getTrackY(bike.x);
+      if (bike.y >= groundY - 18) {
+        // Hit ground
+        if (!bike.onGround && bike.vy > 2) {
+          // Small bounce / landing
+          bike.vy = -jumpBoost * 0.25;
+        } else {
+          bike.vy = 0;
+        }
+        bike.y = groundY - 18;
+        bike.onGround = true;
+
+        // Align with track normal
+        const { nx, ny } = getTrackNormal(bike.x);
+        const groundAngle = Math.atan2(ny, nx) - Math.PI / 2;
+        bike.angle += (groundAngle - bike.angle) * 0.2;
+        bike.angVel *= 0.5;
+      } else {
+        bike.onGround = false;
+      }
+
+      // Camera follow
+      camera.x += (bike.x - camera.x - W * 0.35) * 0.08;
+
+      // Clamp camera
+      camera.x = Math.max(0, Math.min(camera.x, trackLength - W));
+
+      // HUD
+      bikeLabel.textContent = "Bike: " + bikeType.id;
+      const speed = Math.abs(bike.vx).toFixed(1);
+      speedLabel.textContent = "Speed: " + speed;
+      airLabel.textContent = "Air: " + (bike.onGround ? "0" : Math.abs(bike.vy).toFixed(1));
+    }
+
+    function drawBackground() {
+      // Sky gradient already in CSS; add parallax hills
+      const horizon = H * 0.45;
+
+      // Far hills
+      ctx.fillStyle = "#0b1020";
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 10) {
+        const worldX = x + camera.x * 0.3;
+        const y =
+          horizon +
+          Math.sin(worldX * 0.0015) * 30 +
+          Math.cos(worldX * 0.0007) * 20;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mid hills
+      ctx.fillStyle = "#11182b";
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 10) {
+        const worldX = x + camera.x * 0.6;
+        const y =
+          horizon +
+          40 +
+          Math.sin(worldX * 0.002) * 35 +
+          Math.cos(worldX * 0.001) * 25;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawTrack() {
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#202632";
+      ctx.beginPath();
+      for (let i = 0; i < track.length; i++) {
+        const sx = track[i].x - camera.x;
+        const sy = track[i].y;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+
+      // Fill under track
+      ctx.fillStyle = "#151922";
+      ctx.beginPath();
+      ctx.moveTo(track[0].x - camera.x, H);
+      for (let i = 0; i < track.length; i++) {
+        const sx = track[i].x - camera.x;
+        const sy = track[i].y;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.lineTo(track[track.length - 1].x - camera.x, H);
+      ctx.closePath();
+      ctx.fill();
+
+      // Top highlight
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#3a414f";
+      ctx.beginPath();
+      for (let i = 0; i < track.length; i++) {
+        const sx = track[i].x - camera.x;
+        const sy = track[i].y - 2;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+    }
+
+    function drawBike() {
+      const bikeType = bikeTypes[currentBikeIndex];
+      const sx = bike.x - camera.x;
+      const sy = bike.y;
+
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(bike.angle);
+
+      // Shadow
+      ctx.save();
+      ctx.translate(0, 18);
+      ctx.scale(1.2, 0.4);
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 22, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Frame
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = bikeType.color;
+      ctx.beginPath();
+      ctx.moveTo(-18, 0);
+      ctx.lineTo(0, -10);
+      ctx.lineTo(18, -4);
+      ctx.lineTo(4, 4);
+      ctx.lineTo(-10, 4);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Seat
+      ctx.fillStyle = bikeType.color;
+      ctx.beginPath();
+      ctx.moveTo(-4, -12);
+      ctx.lineTo(10, -10);
+      ctx.lineTo(4, -6);
+      ctx.lineTo(-6, -7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Wheels
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#000000";
+      ctx.fillStyle = "#222833";
+
+      function drawWheel(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = "#555f73";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y);
+        ctx.lineTo(x + 10, y);
+        ctx.moveTo(x, y - 10);
+        ctx.lineTo(x, y + 10);
+        ctx.stroke();
+      }
+
+      drawWheel(-16, 8);
+      drawWheel(16, 8);
+
+      // Rider (simple)
+      ctx.strokeStyle = "#f5f5f7";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-4, -14);
+      ctx.lineTo(-4, -26);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(-4, -30, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#f5f5f7";
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function loop(timestamp) {
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
+      update(dt);
+
+      ctx.clearRect(0, 0, W, H);
+      drawBackground();
+      drawTrack();
+      drawBike();
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+  </script>
 </body>
 </html>
