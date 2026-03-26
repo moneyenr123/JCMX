@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>JCMX – Dirt Bike Game</title>
+  <title>JCMX – Dirt Bike</title>
   <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
     :root {
       --bg: #05060a;
       --fg: #f5f5f7;
+      --ui: #10131f;
       --accent: #00ff88;
-      --accent2: #ffcc00;
-      --track: #333842;
-      --ui: #11131a;
+      --danger: #ff4b5c;
+      --track: #2a303b;
     }
 
     * {
@@ -22,25 +23,33 @@
     }
 
     body {
-      background: radial-gradient(circle at top, #151827 0, #05060a 55%, #000 100%);
+      background: radial-gradient(circle at top, #171b2b 0, #05060a 55%, #000 100%);
       color: var(--fg);
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #gameContainer {
+      position: fixed;
+      inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      min-height: 100vh;
-      padding: 16px;
-      gap: 12px;
     }
 
     header {
+      width: 100%;
       text-align: center;
+      padding: 4px 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.4), rgba(0,0,0,0.7));
+      z-index: 5;
     }
 
     h1 {
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      font-size: 1.6rem;
+      letter-spacing: 0.16em;
+      font-weight: 800;
+      font-size: 1.1rem;
       text-transform: uppercase;
     }
 
@@ -49,54 +58,35 @@
     }
 
     .subtitle {
-      font-size: 0.9rem;
+      font-size: 0.7rem;
       opacity: 0.8;
-      margin-top: 4px;
     }
 
-    .game-shell {
-      background: linear-gradient(145deg, #05060a, #101320);
-      border-radius: 16px;
-      padding: 12px;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.03),
-        0 18px 40px rgba(0, 0, 0, 0.7);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    canvas {
+    #gameCanvas {
+      flex: 1;
+      width: 100vw;
+      height: 100vh;
       background: linear-gradient(to top, #05060a 0, #101320 40%, #1a2340 100%);
-      border-radius: 12px;
       display: block;
     }
 
     .hud {
+      position: fixed;
+      left: 8px;
+      top: 40px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--ui);
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 0.8rem;
-    }
-
-    .hud-left,
-    .hud-right {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.7rem;
+      z-index: 10;
     }
 
     .pill {
-      padding: 4px 8px;
+      padding: 3px 7px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(6px);
     }
 
     .pill.accent {
@@ -104,101 +94,138 @@
       color: var(--accent);
     }
 
-    .pill.warn {
-      border-color: rgba(255, 204, 0, 0.7);
-      color: var(--accent2);
+    .pill.danger {
+      border-color: rgba(255, 75, 92, 0.7);
+      color: var(--danger);
     }
 
-    .key {
-      display: inline-flex;
+    .controls {
+      position: fixed;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 10px;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15), rgba(0,0,0,0.9));
+      color: #fff;
+      display: flex;
       align-items: center;
       justify-content: center;
-      min-width: 18px;
-      padding: 1px 5px;
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 0.8rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .btn.small {
+      width: 44px;
+      height: 44px;
       font-size: 0.7rem;
-      margin: 0 1px;
-      background: rgba(0, 0, 0, 0.4);
     }
 
-    footer {
-      font-size: 0.75rem;
-      opacity: 0.6;
-      text-align: center;
+    .btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.8);
     }
 
-    @media (max-width: 720px) {
-      canvas {
-        width: 100%;
-        height: auto;
+    @media (min-width: 900px) {
+      header {
+        padding: 6px 0;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      .subtitle {
+        font-size: 0.8rem;
+      }
+      .hud {
+        font-size: 0.75rem;
       }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1><span>JC</span>MX</h1>
-    <div class="subtitle">Minimal dirt bike physics • Multiple bikes • Keyboard controls</div>
-  </header>
+  <div id="gameContainer">
+    <header>
+      <h1><span>JC</span>MX</h1>
+      <div class="subtitle">Realistic dirt‑bike physics • 50 levels • 2‑stroke engine</div>
+    </header>
+    <canvas id="gameCanvas"></canvas>
 
-  <div class="game-shell">
-    <canvas id="game" width="960" height="540"></canvas>
     <div class="hud">
-      <div class="hud-left">
-        <div class="pill accent" id="bikeLabel">Bike: kx</div>
-        <div class="pill" id="speedLabel">Speed: 0</div>
-        <div class="pill" id="airLabel">Air: 0</div>
+      <div class="pill accent" id="bikeLabel">Bike: xk</div>
+      <div class="pill" id="levelLabel">Level: 1 / 50</div>
+      <div class="pill" id="timeLabel">Time: 0.0s</div>
+      <div class="pill" id="speedLabel">Speed: 0</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <div class="btn" id="btnLeft">⟵</div>
+        <div class="btn" id="btnRight">⟶</div>
       </div>
-      <div class="hud-right">
-        <div class="pill">
-          <span class="key">←</span><span class="key">→</span> lean
-          <span class="key">↑</span> throttle
-          <span class="key">Space</span> brake
-        </div>
-        <div class="pill warn">
-          Bikes:
-          <span class="key">1</span>kx
-          <span class="key">2</span>xk
-          <span class="key">3</span>yz
-          <span class="key">4</span>zy
-          <span class="key">5</span>cr
-          <span class="key">6</span>rc
-          <span class="key">7</span>crf
-          <span class="key">8</span>cfr
-        </div>
+      <div class="control-group">
+        <div class="btn" id="btnBrake">⛔</div>
+        <div class="btn" id="btnGas">▲</div>
+      </div>
+      <div class="control-group">
+        <div class="btn small" id="btnRestart">R</div>
+        <div class="btn small" id="btnNext">N</div>
       </div>
     </div>
   </div>
 
-  <footer>
-    JCMX prototype – extend physics, art, and tracks directly in this file or split into modules.
-  </footer>
+  <audio id="engineSound" src="two_stroke.mp3" loop preload="auto"></audio>
 
   <script>
-    // --- Core setup ---
-    const canvas = document.getElementById("game");
+    // ===== Canvas / resize =====
+    const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    const W = canvas.width;
-    const H = canvas.height;
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
 
-    // --- Bike definitions ---
-    // kx ↔ xk, yz ↔ zy, cr ↔ rc, crf ↔ cfr
-    const bikeTypes = [
-      { id: "kx",  color: "#00ff88", weight: 1.0, power: 1.0, grip: 1.0 },
-      { id: "xk",  color: "#00d977", weight: 1.0, power: 1.05, grip: 0.95 },
-      { id: "yz",  color: "#ffdd00", weight: 0.95, power: 1.1, grip: 0.9 },
-      { id: "zy",  color: "#ffb700", weight: 1.05, power: 0.95, grip: 1.1 },
-      { id: "cr",  color: "#ff3355", weight: 1.1, power: 1.0, grip: 1.05 },
-      { id: "rc",  color: "#ff667a", weight: 1.0, power: 1.05, grip: 1.0 },
-      { id: "crf", color: "#66aaff", weight: 0.98, power: 1.15, grip: 0.95 },
-      { id: "cfr", color: "#3f7fd9", weight: 1.02, power: 1.0, grip: 1.15 }
+    let W = () => canvas.getBoundingClientRect().width;
+    let H = () => canvas.getBoundingClientRect().height;
+
+    // ===== Audio =====
+    const engineSound = document.getElementById("engineSound");
+    engineSound.volume = 0.35;
+
+    // ===== Bikes =====
+    const bikes = [
+      { id: "xk",  color: "#00ff66", weight: 1.0, power: 1.05, grip: 1.0, airControl: 1.0 },
+      { id: "zy",  color: "#4da3ff", weight: 0.98, power: 1.0,  grip: 1.05, airControl: 1.1 },
+      { id: "rc",  color: "#ff3b4f", weight: 1.05, power: 1.1,  grip: 0.95, airControl: 0.95 },
+      { id: "cfr", color: "#ff3b4f", weight: 1.02, power: 1.15, grip: 1.05, airControl: 1.1 }
     ];
-
     let currentBikeIndex = 0;
 
-    // --- Input state ---
+    // ===== Input (keyboard + touch) =====
     const keys = {
       left: false,
       right: false,
@@ -208,96 +235,208 @@
 
     window.addEventListener("keydown", (e) => {
       switch (e.key) {
-        case "ArrowLeft":
-          keys.left = true;
-          break;
-        case "ArrowRight":
-          keys.right = true;
-          break;
-        case "ArrowUp":
-          keys.up = true;
-          break;
-        case " ":
-          keys.brake = true;
-          e.preventDefault();
-          break;
-        case "1":
-        case "2":
-        case "3":
-        case "4":
-        case "5":
-        case "6":
-        case "7":
-        case "8":
+        case "ArrowLeft": keys.left = true; break;
+        case "ArrowRight": keys.right = true; break;
+        case "ArrowUp": keys.up = true; break;
+        case " ": keys.brake = true; e.preventDefault(); break;
+        case "1": case "2": case "3": case "4":
           currentBikeIndex = parseInt(e.key, 10) - 1;
-          resetBikePhysics();
+          resetLevel();
+          break;
+        case "r":
+        case "R":
+          resetLevel();
+          break;
+        case "n":
+        case "N":
+          nextLevel();
           break;
       }
     });
 
     window.addEventListener("keyup", (e) => {
       switch (e.key) {
-        case "ArrowLeft":
-          keys.left = false;
-          break;
-        case "ArrowRight":
-          keys.right = false;
-          break;
-        case "ArrowUp":
-          keys.up = false;
-          break;
-        case " ":
-          keys.brake = false;
-          break;
+        case "ArrowLeft": keys.left = false; break;
+        case "ArrowRight": keys.right = false; break;
+        case "ArrowUp": keys.up = false; break;
+        case " ": keys.brake = false; break;
       }
     });
 
-    // --- Track generation ---
-    const track = [];
-    const trackLength = 4000; // world units
-    const step = 20;
-
-    function generateTrack() {
-      track.length = 0;
-      let x = 0;
-      let baseY = H * 0.7;
-      let noisePhase = 0;
-      while (x <= trackLength) {
-        const height =
-          Math.sin(noisePhase) * 40 +
-          Math.sin(noisePhase * 0.37) * 25 +
-          Math.cos(noisePhase * 0.19) * 15;
-        const y = baseY + height;
-        track.push({ x, y });
-        x += step;
-        noisePhase += 0.25;
-      }
+    function bindButton(id, keyName) {
+      const el = document.getElementById(id);
+      const set = (v) => { keys[keyName] = v; };
+      const start = (ev) => { ev.preventDefault(); set(true); };
+      const end = (ev) => { ev.preventDefault(); set(false); };
+      ["pointerdown", "touchstart"].forEach(ev => el.addEventListener(ev, start));
+      ["pointerup", "pointerleave", "touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, end));
     }
 
-    function getTrackY(worldX) {
-      if (worldX <= 0) return track[0].y;
-      if (worldX >= track[track.length - 1].x) return track[track.length - 1].y;
+    bindButton("btnLeft", "left");
+    bindButton("btnRight", "right");
+    bindButton("btnGas", "up");
+    bindButton("btnBrake", "brake");
 
+    document.getElementById("btnRestart").addEventListener("pointerdown", (e) => { e.preventDefault(); resetLevel(); });
+    document.getElementById("btnNext").addEventListener("pointerdown", (e) => { e.preventDefault(); nextLevel(); });
+
+    // ===== Levels / terrain =====
+    const levels = [];
+    for (let i = 1; i <= 50; i++) {
+      levels.push({
+        id: i,
+        length: 2600 + i * 90,
+        gapChance: 0.02 + i * 0.0015,
+        spikeChance: 0.015 + i * 0.002,
+        slopeIntensity: 0.7 + i * 0.015,
+        checkpointEvery: 650 - i * 4,
+        gravity: 0.55 + i * 0.004,
+        maxSpeed: 16 + i * 0.15
+      });
+    }
+
+    let currentLevelIndex = 0;
+    let trackPoints = [];
+    let obstacles = [];
+
+    function generateLevel(levelConfig) {
+      trackPoints = [];
+      obstacles = [];
+
+      const step = 18;
+      const length = levelConfig.length;
+      let x = 0;
+      let baseY = H() * 0.7;
+      let phase = 0;
+
+      while (x <= length) {
+        const bigRoll = Math.sin(phase * 0.35) * 60;
+        const medium = Math.sin(phase * 0.9) * 25;
+        const small = Math.sin(phase * 2.1) * 10;
+        let y = baseY + (bigRoll + medium + small) * levelConfig.slopeIntensity;
+
+        // Gentle random noise
+        y += (Math.random() - 0.5) * 6;
+
+        // Occasional gap
+        if (Math.random() < levelConfig.gapChance && x > 250 && x < length - 350) {
+          y = H() + 200;
+          obstacles.push({
+            type: "gap",
+            xStart: x - step,
+            xEnd: x + step
+          });
+        }
+
+        trackPoints.push({ x, y });
+        x += step;
+        phase += 0.18;
+      }
+
+      // Spikes
+      for (let i = 5; i < trackPoints.length - 5; i++) {
+        if (Math.random() < levelConfig.spikeChance) {
+          const p = trackPoints[i];
+          if (p.y < H()) {
+            obstacles.push({
+              type: "spike",
+              x: p.x,
+              y: p.y - 12,
+              width: 20,
+              height: 20
+            });
+          }
+        }
+      }
+
+      // Checkpoints
+      const cpStep = Math.max(450, levelConfig.checkpointEvery);
+      for (let cx = cpStep; cx < length - 250; cx += cpStep) {
+        const y = getTrackYRaw(cx);
+        obstacles.push({
+          type: "checkpoint",
+          x: cx,
+          y: y - 30,
+          radius: 14
+        });
+      }
+
+      // Finish
+      const finishX = length - 160;
+      const finishY = getTrackYRaw(finishX);
+      obstacles.push({
+        type: "finish",
+        x: finishX,
+        y: finishY - 60,
+        width: 24,
+        height: 100
+      });
+    }
+
+    function getTrackYRaw(worldX) {
+      if (trackPoints.length === 0) return H() * 0.7;
+      if (worldX <= 0) return trackPoints[0].y;
+      if (worldX >= trackPoints[trackPoints.length - 1].x) {
+        return trackPoints[trackPoints.length - 1].y;
+      }
+      const step = trackPoints[1].x - trackPoints[0].x;
       const i = Math.floor(worldX / step);
-      const p0 = track[i];
-      const p1 = track[i + 1];
+      const p0 = trackPoints[i];
+      const p1 = trackPoints[i + 1];
       const t = (worldX - p0.x) / (p1.x - p0.x);
       return p0.y * (1 - t) + p1.y * t;
     }
 
     function getTrackNormal(worldX) {
+      const step = trackPoints[1].x - trackPoints[0].x;
       const x0 = Math.max(0, worldX - step);
-      const x1 = Math.min(trackLength, worldX + step);
-      const y0 = getTrackY(x0);
-      const y1 = getTrackY(x1);
+      const x1 = Math.min(trackPoints[trackPoints.length - 1].x, worldX + step);
+      const y0 = getTrackYRaw(x0);
+      const y1 = getTrackYRaw(x1);
       const dx = x1 - x0;
       const dy = y1 - y0;
       const len = Math.hypot(dx, dy) || 1;
-      // Tangent (dx, dy) → normal (-dy, dx)
       return { nx: -dy / len, ny: dx / len };
     }
 
-    // --- Bike physics ---
+    // ===== Procedural Dirt Texture =====
+    let dirtPattern = null;
+
+    function generateDirtTexture() {
+      const size = 120;
+      const tex = document.createElement("canvas");
+      tex.width = size;
+      tex.height = size;
+      const tctx = tex.getContext("2d");
+
+      // Base dirt color
+      tctx.fillStyle = "#3b2f23";
+      tctx.fillRect(0, 0, size, size);
+
+      // Dark grain
+      for (let i = 0; i < 350; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        const alpha = 0.15 + Math.random() * 0.25;
+        tctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        tctx.fillRect(x, y, 2, 2);
+      }
+
+      // Light speckles
+      for (let i = 0; i < 250; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        const alpha = 0.1 + Math.random() * 0.2;
+        tctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        tctx.fillRect(x, y, 1.5, 1.5);
+      }
+
+      dirtPattern = ctx.createPattern(tex, "repeat");
+    }
+
+    generateDirtTexture();
+
+    // ===== Bike physics =====
     const bike = {
       x: 100,
       y: 0,
@@ -305,147 +444,242 @@
       vy: 0,
       angle: 0,
       angVel: 0,
-      onGround: false
+      onGround: false,
+      dead: false,
+      finished: false,
+      lastCheckpointX: 100,
+      lastCheckpointY: 0
     };
 
-    const gravity = 0.6;
-    const baseEngineForce = 0.35;
-    const baseBrakeForce = 0.4;
-    const baseFriction = 0.02;
-    const maxSpeed = 18;
-    const jumpBoost = 8;
+    const camera = { x: 0 };
 
-    function resetBikePhysics() {
+    let levelTime = 0;
+    let lastTimestamp = performance.now();
+
+    const bikeLabel = document.getElementById("bikeLabel");
+    const levelLabel = document.getElementById("levelLabel");
+    const timeLabel = document.getElementById("timeLabel");
+    const speedLabel = document.getElementById("speedLabel");
+
+    function resetBike() {
+      const startY = getTrackYRaw(100);
       bike.x = 100;
-      bike.y = getTrackY(bike.x) - 20;
+      bike.y = startY - 22;
       bike.vx = 0;
       bike.vy = 0;
       bike.angle = 0;
       bike.angVel = 0;
       bike.onGround = true;
+      bike.dead = false;
+      bike.finished = false;
+      bike.lastCheckpointX = bike.x;
+      bike.lastCheckpointY = bike.y;
+      camera.x = 0;
+      levelTime = 0;
     }
 
-    generateTrack();
-    resetBikePhysics();
+    function resetLevel() {
+      const levelConfig = levels[currentLevelIndex];
+      generateLevel(levelConfig);
+      resetBike();
+    }
 
-    // --- Camera ---
-    const camera = {
-      x: 0
-    };
+    function nextLevel() {
+      currentLevelIndex = (currentLevelIndex + 1) % levels.length;
+      resetLevel();
+    }
 
-    // --- HUD elements ---
-    const bikeLabel = document.getElementById("bikeLabel");
-    const speedLabel = document.getElementById("speedLabel");
-    const airLabel = document.getElementById("airLabel");
+    function killRider() {
+      if (bike.dead || bike.finished) return;
+      bike.dead = true;
+      engineSound.pause();
+      engineSound.currentTime = 0;
+      setTimeout(resetLevel, 900);
+    }
 
-    // --- Game loop ---
-    let lastTime = performance.now();
+    function finishLevel() {
+      if (bike.dead || bike.finished) return;
+      bike.finished = true;
+      engineSound.pause();
+      engineSound.currentTime = 0;
+      setTimeout(nextLevel, 1200);
+    }
+
+    resetLevel();
 
     function update(dt) {
-      const bikeType = bikeTypes[currentBikeIndex];
+      const levelConfig = levels[currentLevelIndex];
+      const bikeType = bikes[currentBikeIndex];
 
-      // Horizontal engine/brake
+      if (!bike.dead && !bike.finished) {
+        levelTime += dt / 1000;
+      }
+
+      // Engine sound
+      const targetRate = 0.7 + (keys.up ? 0.6 : 0) + Math.min(Math.abs(bike.vx) / levelConfig.maxSpeed, 1) * 0.6;
+      engineSound.playbackRate = targetRate;
+
+      if ((keys.up || Math.abs(bike.vx) > 0.5) && !bike.dead && !bike.finished) {
+        if (engineSound.paused) {
+          engineSound.play().catch(() => {});
+        }
+      } else {
+        engineSound.pause();
+      }
+
+      if (bike.dead || bike.finished) {
+        bike.vx *= 0.98;
+        bike.vy += levelConfig.gravity * bikeType.weight;
+        bike.x += bike.vx;
+        bike.y += bike.vy;
+        bike.angle += bike.angVel;
+        bike.angVel *= 0.99;
+        return;
+      }
+
+      // Engine / brake
       if (keys.up) {
-        const force = baseEngineForce * bikeType.power;
-        bike.vx += force;
+        const engineForce = 0.42 * bikeType.power;
+        bike.vx += engineForce;
       }
 
       if (keys.brake) {
-        const brake = baseBrakeForce * bikeType.grip;
+        const brakeForce = 0.55 * bikeType.grip;
         if (bike.vx > 0) {
-          bike.vx -= brake;
+          bike.vx -= brakeForce;
           if (bike.vx < 0) bike.vx = 0;
         }
       }
 
       // Cap speed
-      if (bike.vx > maxSpeed * bikeType.power) {
-        bike.vx = maxSpeed * bikeType.power;
-      }
+      const maxSpeed = levelConfig.maxSpeed * bikeType.power;
+      if (bike.vx > maxSpeed) bike.vx = maxSpeed;
 
-      // Air control (lean)
+      // Air control
       if (!bike.onGround) {
-        if (keys.left) bike.angVel -= 0.0025 * dt;
-        if (keys.right) bike.angVel += 0.0025 * dt;
+        const airTorque = 0.0032 * bikeType.airControl * dt;
+        if (keys.left) bike.angVel -= airTorque;
+        if (keys.right) bike.angVel += airTorque;
       } else {
-        // On ground, lean slightly affects traction
-        if (keys.left) bike.vx -= 0.01 * bikeType.grip;
-        if (keys.right) bike.vx += 0.01 * bikeType.grip;
+        if (keys.left) bike.vx -= 0.02 * bikeType.grip;
+        if (keys.right) bike.vx += 0.02 * bikeType.grip;
       }
 
       // Gravity
-      bike.vy += gravity * bikeType.weight;
+      bike.vy += levelConfig.gravity * bikeType.weight;
 
       // Integrate
       bike.x += bike.vx;
       bike.y += bike.vy;
       bike.angle += bike.angVel;
 
-      // Simple damping
-      bike.vx *= 1 - baseFriction;
-      bike.angVel *= 0.99;
+      // Damping
+      bike.vx *= 0.99;
+      bike.angVel *= 0.985;
 
       // Ground collision
-      const groundY = getTrackY(bike.x);
-      if (bike.y >= groundY - 18) {
-        // Hit ground
-        if (!bike.onGround && bike.vy > 2) {
-          // Small bounce / landing
-          bike.vy = -jumpBoost * 0.25;
-        } else {
-          bike.vy = 0;
-        }
-        bike.y = groundY - 18;
-        bike.onGround = true;
-
-        // Align with track normal
+      const groundY = getTrackYRaw(bike.x);
+      if (bike.y >= groundY - 20) {
+        const impactSpeed = bike.vy;
         const { nx, ny } = getTrackNormal(bike.x);
         const groundAngle = Math.atan2(ny, nx) - Math.PI / 2;
-        bike.angle += (groundAngle - bike.angle) * 0.2;
-        bike.angVel *= 0.5;
+        const angleDiff = Math.abs(((bike.angle - groundAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+
+        if (impactSpeed > 9 && angleDiff > 0.75) {
+          killRider();
+          return;
+        }
+
+        bike.vy = 0;
+        bike.y = groundY - 20;
+        bike.onGround = true;
+
+        bike.angle += (groundAngle - bike.angle) * 0.25;
+        bike.angVel *= 0.4;
       } else {
         bike.onGround = false;
       }
 
-      // Camera follow
-      camera.x += (bike.x - camera.x - W * 0.35) * 0.08;
+      // Upside‑down in air
+      if (!bike.onGround && Math.abs(((bike.angle + Math.PI) % (Math.PI * 2)) - Math.PI) > 1.9) {
+        killRider();
+      }
 
-      // Clamp camera
-      camera.x = Math.max(0, Math.min(camera.x, trackLength - W));
+      // Obstacles
+      for (const o of obstacles) {
+        if (o.type === "spike") {
+          const dx = bike.x - o.x;
+          const dy = bike.y - (o.y - 5);
+          if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
+            killRider();
+            break;
+          }
+        } else if (o.type === "finish") {
+          if (bike.x > o.x - 10 && bike.x < o.x + o.width + 10 && bike.y > o.y - 60) {
+            finishLevel();
+            break;
+          }
+        } else if (o.type === "checkpoint") {
+          const dx = bike.x - o.x;
+          const dy = bike.y - o.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < o.radius + 18) {
+            bike.lastCheckpointX = o.x;
+            bike.lastCheckpointY = getTrackYRaw(o.x) - 20;
+          }
+        }
+      }
+
+      // Fall off world
+      if (bike.y > H() + 250) {
+        bike.x = bike.lastCheckpointX;
+        bike.y = bike.lastCheckpointY;
+        bike.vx = 0;
+        bike.vy = 0;
+        bike.angle = 0;
+        bike.angVel = 0;
+      }
+
+      // Camera follow
+      const targetCamX = bike.x - W() * 0.45;
+      camera.x += (targetCamX - camera.x) * 0.12;
+      camera.x = Math.max(0, Math.min(camera.x, levels[currentLevelIndex].length - W()));
 
       // HUD
       bikeLabel.textContent = "Bike: " + bikeType.id;
-      const speed = Math.abs(bike.vx).toFixed(1);
-      speedLabel.textContent = "Speed: " + speed;
-      airLabel.textContent = "Air: " + (bike.onGround ? "0" : Math.abs(bike.vy).toFixed(1));
+      levelLabel.textContent = "Level: " + (currentLevelIndex + 1) + " / " + levels.length;
+      timeLabel.textContent = "Time: " + levelTime.toFixed(1) + "s";
+      speedLabel.textContent = "Speed: " + Math.abs(bike.vx).toFixed(1);
     }
 
+    // ===== Drawing =====
     function drawBackground() {
-      // Sky gradient already in CSS; add parallax hills
-      const horizon = H * 0.45;
+      const h = H();
+      const w = W();
+      const horizon = h * 0.45;
 
       // Far hills
       ctx.fillStyle = "#0b1020";
       ctx.beginPath();
-      ctx.moveTo(0, H);
-      for (let x = 0; x <= W; x += 10) {
-        const worldX = x + camera.x * 0.3;
+      ctx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 12) {
+        const worldX = x + camera.x * 0.25;
         const y =
           horizon +
           Math.sin(worldX * 0.0015) * 30 +
           Math.cos(worldX * 0.0007) * 20;
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(W, H);
+      ctx.lineTo(w, h);
       ctx.closePath();
       ctx.fill();
 
       // Mid hills
       ctx.fillStyle = "#11182b";
       ctx.beginPath();
-      ctx.moveTo(0, H);
-      for (let x = 0; x <= W; x += 10) {
-        const worldX = x + camera.x * 0.6;
+      ctx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 12) {
+        const worldX = x + camera.x * 0.5;
         const y =
           horizon +
           40 +
@@ -453,51 +687,98 @@
           Math.cos(worldX * 0.001) * 25;
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(W, H);
+      ctx.lineTo(w, h);
       ctx.closePath();
       ctx.fill();
     }
 
     function drawTrack() {
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "#202632";
+      if (trackPoints.length === 0) return;
+      const h = H();
+
+      // Textured dirt under track
+      ctx.fillStyle = dirtPattern;
       ctx.beginPath();
-      for (let i = 0; i < track.length; i++) {
-        const sx = track[i].x - camera.x;
-        const sy = track[i].y;
+      ctx.moveTo(trackPoints[0].x - camera.x, h);
+      for (let i = 0; i < trackPoints.length; i++) {
+        const sx = trackPoints[i].x - camera.x;
+        const sy = trackPoints[i].y;
+        ctx.lineTo(sx, sy);
+      }
+      ctx.lineTo(trackPoints[trackPoints.length - 1].x - camera.x, h);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dark outline
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#1e1e1e";
+      ctx.beginPath();
+      for (let i = 0; i < trackPoints.length; i++) {
+        const sx = trackPoints[i].x - camera.x;
+        const sy = trackPoints[i].y;
         if (i === 0) ctx.moveTo(sx, sy);
         else ctx.lineTo(sx, sy);
       }
       ctx.stroke();
 
-      // Fill under track
-      ctx.fillStyle = "#151922";
-      ctx.beginPath();
-      ctx.moveTo(track[0].x - camera.x, H);
-      for (let i = 0; i < track.length; i++) {
-        const sx = track[i].x - camera.x;
-        const sy = track[i].y;
-        ctx.lineTo(sx, sy);
-      }
-      ctx.lineTo(track[track.length - 1].x - camera.x, H);
-      ctx.closePath();
-      ctx.fill();
-
-      // Top highlight
+      // Highlight ridge
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "#3a414f";
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
       ctx.beginPath();
-      for (let i = 0; i < track.length; i++) {
-        const sx = track[i].x - camera.x;
-        const sy = track[i].y - 2;
+      for (let i = 0; i < trackPoints.length; i++) {
+        const sx = trackPoints[i].x - camera.x;
+        const sy = trackPoints[i].y - 2;
         if (i === 0) ctx.moveTo(sx, sy);
         else ctx.lineTo(sx, sy);
       }
       ctx.stroke();
     }
 
+    function drawObstacles() {
+      for (const o of obstacles) {
+        const sx = o.x - camera.x;
+        if (o.type === "spike") {
+          ctx.fillStyle = "#ff4b5c";
+          ctx.beginPath();
+          ctx.moveTo(sx - o.width / 2, o.y + o.height / 2);
+          ctx.lineTo(sx, o.y - o.height / 2);
+          ctx.lineTo(sx + o.width / 2, o.y + o.height / 2);
+          ctx.closePath();
+          ctx.fill();
+        } else if (o.type === "finish") {
+          ctx.save();
+          ctx.translate(sx, o.y);
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, o.width, o.height);
+          ctx.fillStyle = "#000000";
+          const cell = 8;
+          for (let y = 0; y < o.height; y += cell) {
+            for (let x = 0; x < o.width; x += cell) {
+              if (((x + y) / cell) % 2 === 0) {
+                ctx.fillRect(x, y, cell, cell);
+              }
+            }
+          }
+          ctx.restore();
+        } else if (o.type === "checkpoint") {
+          ctx.save();
+          ctx.translate(sx, o.y);
+          ctx.strokeStyle = "#00ff88";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, o.radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, -o.radius);
+          ctx.lineTo(0, o.radius);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+
     function drawBike() {
-      const bikeType = bikeTypes[currentBikeIndex];
+      const bikeType = bikes[currentBikeIndex];
       const sx = bike.x - camera.x;
       const sy = bike.y;
 
@@ -507,44 +788,21 @@
 
       // Shadow
       ctx.save();
-      ctx.translate(0, 18);
-      ctx.scale(1.2, 0.4);
+      ctx.translate(0, 22);
+      ctx.scale(1.5, 0.45);
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.beginPath();
-      ctx.ellipse(0, 0, 22, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 26, 11, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // Frame
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = bikeType.color;
-      ctx.beginPath();
-      ctx.moveTo(-18, 0);
-      ctx.lineTo(0, -10);
-      ctx.lineTo(18, -4);
-      ctx.lineTo(4, 4);
-      ctx.lineTo(-10, 4);
-      ctx.closePath();
-      ctx.stroke();
-
-      // Seat
-      ctx.fillStyle = bikeType.color;
-      ctx.beginPath();
-      ctx.moveTo(-4, -12);
-      ctx.lineTo(10, -10);
-      ctx.lineTo(4, -6);
-      ctx.lineTo(-6, -7);
-      ctx.closePath();
-      ctx.fill();
-
       // Wheels
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#000000";
-      ctx.fillStyle = "#222833";
-
       function drawWheel(x, y) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#000000";
+        ctx.fillStyle = "#222833";
         ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
@@ -558,34 +816,96 @@
         ctx.stroke();
       }
 
-      drawWheel(-16, 8);
-      drawWheel(16, 8);
+      drawWheel(-22, 10);
+      drawWheel(22, 10);
 
-      // Rider (simple)
-      ctx.strokeStyle = "#f5f5f7";
-      ctx.lineWidth = 2;
+      // Frame (realistic MX‑style silhouette, generic)
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = bikeType.color;
       ctx.beginPath();
-      ctx.moveTo(-4, -14);
-      ctx.lineTo(-4, -26);
+      ctx.moveTo(-22, 4);
+      ctx.lineTo(-8, -4);
+      ctx.lineTo(4, -6);
+      ctx.lineTo(18, -2);
+      ctx.lineTo(24, 4);
+      ctx.lineTo(10, 8);
+      ctx.lineTo(-10, 8);
+      ctx.closePath();
       ctx.stroke();
 
+      // Tank / shrouds
+      ctx.fillStyle = bikeType.color;
       ctx.beginPath();
-      ctx.arc(-4, -30, 4, 0, Math.PI * 2);
+      ctx.moveTo(-6, -10);
+      ctx.lineTo(10, -10);
+      ctx.lineTo(14, -4);
+      ctx.lineTo(2, -2);
+      ctx.lineTo(-8, -4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Seat
+      ctx.fillStyle = "#111111";
+      ctx.beginPath();
+      ctx.moveTo(-4, -12);
+      ctx.lineTo(12, -12);
+      ctx.lineTo(8, -8);
+      ctx.lineTo(-6, -8);
+      ctx.closePath();
+      ctx.fill();
+
+      // Forks
+      ctx.strokeStyle = "#d0d4e0";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(10, -6);
+      ctx.lineTo(22, 6);
+      ctx.stroke();
+
+      // Bars
+      ctx.beginPath();
+      ctx.moveTo(-2, -16);
+      ctx.lineTo(8, -18);
+      ctx.stroke();
+
+      // Rider
+      ctx.strokeStyle = "#f5f5f7";
+      ctx.lineWidth = 2;
+      // torso
+      ctx.beginPath();
+      ctx.moveTo(-2, -14);
+      ctx.lineTo(-2, -26);
+      ctx.stroke();
+      // head
+      ctx.beginPath();
+      ctx.arc(-2, -30, 4, 0, Math.PI * 2);
       ctx.fillStyle = "#f5f5f7";
       ctx.fill();
+      // arms
+      ctx.beginPath();
+      ctx.moveTo(-2, -20);
+      ctx.lineTo(6, -16);
+      ctx.stroke();
+      // legs
+      ctx.beginPath();
+      ctx.moveTo(-2, -14);
+      ctx.lineTo(-10, 6);
+      ctx.stroke();
 
       ctx.restore();
     }
 
+    // ===== Loop =====
     function loop(timestamp) {
-      const dt = timestamp - lastTime;
-      lastTime = timestamp;
+      const dt = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
 
       update(dt);
 
-      ctx.clearRect(0, 0, W, H);
+      ctx.clearRect(0, 0, W(), H());
       drawBackground();
       drawTrack();
+      drawObstacles();
       drawBike();
 
       requestAnimationFrame(loop);
