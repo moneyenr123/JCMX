@@ -3,200 +3,174 @@
 <head>
   <meta charset="UTF-8" />
   <title>JCMX – Dirt Bike</title>
-  <link rel="icon" type="image/png" href="favicon.png" />
+  
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="apple-touch-icon" href="../favicon.png">
+  <meta name="apple-mobile-web-app-title" content="JC Mini Games">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
   <style>
     :root {
       --bg: #05060a;
+      --bg-soft: #0b0f1b;
       --fg: #f5f5f7;
-      --ui: #10131f;
       --accent: #00ff88;
+      --accent-soft: rgba(0, 255, 136, 0.2);
       --danger: #ff4b5c;
-      --track: #2a303b;
+      --panel: rgba(5, 7, 15, 0.92);
+      --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.9);
+      --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.7);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    
     body {
-      background: radial-gradient(circle at top, #171b2b 0, #05060a 55%, #000 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
       color: var(--fg);
       overflow: hidden;
       touch-action: none;
     }
 
-    #gameContainer {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
+    #game-root { position: fixed; inset: 0; display: flex; flex-direction: column; }
+
+    .top-bar {
+      height: 46px; display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 10px; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08); z-index: 10;
     }
 
-    header {
-      width: 100%;
-      text-align: center;
-      padding: 4px 0;
-      background: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.4), rgba(0,0,0,0.7));
-      z-index: 5;
+    .logo { font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; }
+    .logo-main { color: var(--accent); }
+    .logo-sub { color: #ffffff; }
+
+    .top-meta { display: flex; gap: 6px; font-size: 0.75rem; font-weight: 600; }
+    .pill { padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); }
+    .pill-accent { border-color: var(--accent); color: var(--accent); }
+    .pill-trick { color: #ff00ea; text-shadow: 0 0 8px rgba(255, 0, 234, 0.8); display: none; }
+
+    .game-shell { position: relative; flex: 1; display: flex; align-items: stretch; justify-content: center; }
+    #game-canvas { width: 100vw; height: calc(100vh - 46px); display: block; }
+
+    .menu-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: auto; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .menu-overlay.hidden { display: none; }
+
+    .menu-panel {
+      min-width: min(600px, 92vw); padding: 24px; border-radius: 18px;
+      background: var(--panel); border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow-strong); display: flex; flex-direction: column; gap: 16px;
     }
 
-    h1 {
-      letter-spacing: 0.16em;
-      font-weight: 800;
-      font-size: 1.1rem;
-      text-transform: uppercase;
+    .menu-panel h1 { font-size: 2rem; letter-spacing: 0.15em; text-transform: uppercase; text-align: center; }
+    .menu-panel h2 { font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;}
+    
+    .bike-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .bike-card {
+      border-radius: 12px; border: 2px solid transparent; background: rgba(255,255,255,0.05);
+      padding: 10px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; color: var(--fg);
+      transition: all 0.2s;
     }
+    .bike-card:hover { background: rgba(255,255,255,0.1); }
+    .bike-card.active { border-color: var(--accent); background: var(--accent-soft); }
+    .bike-color { width: 100%; height: 24px; border-radius: 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+    .bike-label { font-size: 0.8rem; text-align: center; font-weight: bold; }
 
-    h1 span {
-      color: var(--accent);
+    .level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; }
+    .level-btn { border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff; padding: 10px 0; cursor: pointer; font-weight: bold; }
+    .level-btn:hover { background: rgba(255,255,255,0.1); }
+    .level-btn.current { border-color: var(--accent); background: var(--accent); color: #000; }
+
+    .menu-actions { display: flex; justify-content: center; gap: 12px; margin-top: 10px; }
+    button.primary, button.secondary { border-radius: 8px; padding: 10px 24px; font-size: 1rem; font-weight: bold; border: none; cursor: pointer; text-transform: uppercase; }
+    button.primary { background: var(--accent); color: #000; box-shadow: 0 4px 15px rgba(0,255,136,0.3); }
+    button.primary:active { transform: translateY(2px); box-shadow: none; }
+    button.secondary { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .touch-controls { position: absolute; inset-inline: 0; bottom: 20px; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; }
+    .touch-group { display: flex; gap: 15px; pointer-events: auto; }
+    .touch-btn {
+      width: 70px; height: 70px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); color: #fff; font-size: 1.5rem;
+      display: flex; align-items: center; justify-content: center; user-select: none; touch-action: none;
     }
-
-    .subtitle {
-      font-size: 0.7rem;
-      opacity: 0.8;
-    }
-
-    #gameCanvas {
-      flex: 1;
-      width: 100vw;
-      height: 100vh;
-      background: linear-gradient(to top, #05060a 0, #101320 40%, #1a2340 100%);
-      display: block;
-    }
-
-    .hud {
-      position: fixed;
-      left: 8px;
-      top: 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.7rem;
-      z-index: 10;
-    }
-
-    .pill {
-      padding: 3px 7px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(6px);
-    }
-
-    .pill.accent {
-      border-color: rgba(0, 255, 136, 0.7);
-      color: var(--accent);
-    }
-
-    .pill.danger {
-      border-color: rgba(255, 75, 92, 0.7);
-      color: var(--danger);
-    }
-
-    .controls {
-      position: fixed;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 10px;
-      z-index: 20;
-      pointer-events: none;
-    }
-
-    .control-group {
-      display: flex;
-      gap: 8px;
-      pointer-events: auto;
-    }
-
-    .btn {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15), rgba(0,0,0,0.9));
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.7);
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-    }
-
-    .btn.small {
-      width: 44px;
-      height: 44px;
-      font-size: 0.7rem;
-    }
-
-    .btn:active {
-      transform: scale(0.95);
-      box-shadow: 0 3px 10px rgba(0,0,0,0.8);
-    }
-
-    @media (min-width: 900px) {
-      header {
-        padding: 6px 0;
-      }
-      h1 {
-        font-size: 1.3rem;
-      }
-      .subtitle {
-        font-size: 0.8rem;
-      }
-      .hud {
-        font-size: 0.75rem;
-      }
+    .touch-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
+    
+    @media (max-width: 720px) {
+      .bike-row { grid-template-columns: repeat(2, 1fr); }
+      .touch-btn { width: 60px; height: 60px; font-size: 1.2rem; }
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <header>
-      <h1><span>JC</span>MX</h1>
-      <div class="subtitle">Realistic dirt‑bike physics • 50 levels • 2‑stroke engine</div>
+  <div id="game-root">
+    <header class="top-bar">
+      <div class="logo"><span class="logo-main">JC</span><span class="logo-sub">MX</span></div>
+      <div class="top-meta">
+        <span id="hud-trick" class="pill pill-trick">FLIP +1000</span>
+        <span id="hud-time" class="pill">0.00s</span>
+      </div>
     </header>
-    <canvas id="gameCanvas"></canvas>
 
-    <div class="hud">
-      <div class="pill accent" id="bikeLabel">Bike: xk</div>
-      <div class="pill" id="levelLabel">Level: 1 / 50</div>
-      <div class="pill" id="timeLabel">Time: 0.0s</div>
-      <div class="pill" id="speedLabel">Speed: 0</div>
-    </div>
+    <main class="game-shell">
+      <canvas id="game-canvas"></canvas>
 
-    <div class="controls">
-      <div class="control-group">
-        <div class="btn" id="btnLeft">⟵</div>
-        <div class="btn" id="btnRight">⟶</div>
+      <div class="menu-overlay hidden" id="main-menu">
+        <div class="menu-panel">
+          <h1>JCMX Pro</h1>
+          
+          <div class="menu-section">
+            <h2>Garage</h2>
+            <div class="bike-row">
+              <div class="bike-card" data-bike="xk"><div class="bike-color" style="background:#00ff66;"></div><div class="bike-label">250cc 2-Stroke</div></div>
+              <div class="bike-card" data-bike="zy"><div class="bike-color" style="background:#4da3ff;"></div><div class="bike-label">450cc 4-Stroke</div></div>
+              <div class="bike-card" data-bike="rc"><div class="bike-color" style="background:#ff3b4f;"></div><div class="bike-label">Vintage 500cc</div></div>
+              <div class="bike-card" data-bike="cfr"><div class="bike-color" style="background:#ffae00;"></div><div class="bike-label">Factory Rally</div></div>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <h2>Tracks</h2>
+            <div class="level-grid" id="level-grid"></div>
+          </div>
+
+          <div class="menu-actions">
+            <button id="btn-play" class="primary">RIDE</button>
+          </div>
+        </div>
       </div>
-      <div class="control-group">
-        <div class="btn" id="btnBrake">⛔</div>
-        <div class="btn" id="btnGas">▲</div>
+
+      <div class="menu-overlay hidden" id="finish-menu">
+        <div class="menu-panel" style="min-width: 300px; text-align: center;">
+          <h2>Track Cleared!</h2>
+          <h1 id="finish-time" style="color: var(--accent); margin: 10px 0;">0.00s</h1>
+          <p id="finish-tricks" style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 10px;">Tricks: 0</p>
+          <div class="menu-actions">
+            <button id="btn-next-level" class="primary">Next Track</button>
+            <button id="btn-finish-menu" class="secondary">Menu</button>
+          </div>
+        </div>
       </div>
-      <div class="control-group">
-        <div class="btn small" id="btnRestart">R</div>
-        <div class="btn small" id="btnNext">N</div>
+
+      <div class="touch-controls">
+        <div class="touch-group">
+          <button class="touch-btn" id="btn-lean-left">⟲</button>
+          <button class="touch-btn" id="btn-lean-right">⟳</button>
+        </div>
+        <div class="touch-group">
+          <button class="touch-btn" id="btn-brake" style="background: rgba(255, 75, 92, 0.3);">⛔</button>
+          <button class="touch-btn" id="btn-gas" style="background: rgba(0, 255, 136, 0.2);">▲</button>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 
-  <audio id="engineSound" src="two_stroke.mp3" loop preload="auto"></audio>
+  <audio id="engine-sound" src="two_stroke.mp3" preload="auto" loop></audio>
 
   <script>
-    // ===== Canvas / resize =====
-    const canvas = document.getElementById("gameCanvas");
+    const canvas = document.getElementById("game-canvas");
     const ctx = canvas.getContext("2d");
 
     function resizeCanvas() {
@@ -209,726 +183,483 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    let W = () => canvas.getBoundingClientRect().width;
-    let H = () => canvas.getBoundingClientRect().height;
+    const W = () => canvas.getBoundingClientRect().width;
+    const H = () => canvas.getBoundingClientRect().height;
 
-    // ===== Audio =====
-    const engineSound = document.getElementById("engineSound");
-    engineSound.volume = 0.35;
+    // UI Elements
+    const hudTime = document.getElementById("hud-time");
+    const hudTrick = document.getElementById("hud-trick");
+    const mainMenu = document.getElementById("main-menu");
+    const finishMenu = document.getElementById("finish-menu");
+    const levelGrid = document.getElementById("level-grid");
+    const engineSound = document.getElementById("engine-sound");
 
-    // ===== Bikes =====
+    // Input State
+    const input = { left: false, right: false, gas: false, brake: false };
+    const bindBtn = (id, key) => {
+      const el = document.getElementById(id);
+      const start = (e) => { e.preventDefault(); input[key] = true; };
+      const end = (e) => { e.preventDefault(); input[key] = false; };
+      el.addEventListener("pointerdown", start);
+      el.addEventListener("touchstart", start);
+      ['pointerup','pointerleave','touchend','touchcancel'].forEach(ev => el.addEventListener(ev, end));
+    };
+    bindBtn("btn-lean-left", "left"); bindBtn("btn-lean-right", "right");
+    bindBtn("btn-gas", "gas"); bindBtn("btn-brake", "brake");
+
+    window.addEventListener("keydown", e => {
+      if(e.key === "ArrowLeft" || e.key === "a") input.left = true;
+      if(e.key === "ArrowRight" || e.key === "d") input.right = true;
+      if(e.key === "ArrowUp" || e.key === "w") input.gas = true;
+      if(e.key === "ArrowDown" || e.key === "s" || e.key === " ") input.brake = true;
+    });
+    window.addEventListener("keyup", e => {
+      if(e.key === "ArrowLeft" || e.key === "a") input.left = false;
+      if(e.key === "ArrowRight" || e.key === "d") input.right = false;
+      if(e.key === "ArrowUp" || e.key === "w") input.gas = false;
+      if(e.key === "ArrowDown" || e.key === "s" || e.key === " ") input.brake = false;
+    });
+
+    // Game Config & State
     const bikes = [
-      { id: "xk",  color: "#00ff66", weight: 1.0,  power: 1.05, grip: 1.05, airControl: 1.1 },
-      { id: "zy",  color: "#4da3ff", weight: 0.98, power: 1.0,  grip: 1.1,  airControl: 1.2 },
-      { id: "rc",  color: "#ff3b4f", weight: 1.05, power: 1.1,  grip: 1.0,  airControl: 1.0 },
-      { id: "cfr", color: "#ff3b4f", weight: 1.02, power: 1.15, grip: 1.1,  airControl: 1.15 }
+      { id: "xk", color: "#00ff66", speed: 18, accel: 0.35, grip: 1.0, air: 1.0 },
+      { id: "zy", color: "#4da3ff", speed: 20, accel: 0.30, grip: 0.9, air: 0.8 },
+      { id: "rc", color: "#ff3b4f", speed: 17, accel: 0.45, grip: 1.1, air: 1.2 },
+      { id: "cfr", color: "#ffae00", speed: 22, accel: 0.40, grip: 0.8, air: 0.9 }
     ];
     let currentBikeIndex = 0;
-
-    // ===== Input (keyboard + touch) =====
-    const keys = {
-      left: false,
-      right: false,
-      up: false,
-      brake: false
+    let currentLevel = 0;
+    
+    const gameState = {
+      running: false, time: 0, lastFrame: performance.now(), tricks: 0, 
+      airRot: 0, lastAngle: 0
     };
 
-    window.addEventListener("keydown", (e) => {
-      switch (e.key) {
-        case "ArrowLeft": keys.left = true; break;
-        case "ArrowRight": keys.right = true; break;
-        case "ArrowUp": keys.up = true; break;
-        case " ": keys.brake = true; e.preventDefault(); break;
-        case "1": case "2": case "3": case "4":
-          currentBikeIndex = parseInt(e.key, 10) - 1;
-          resetLevel();
-          break;
-        case "r":
-        case "R":
-          resetLevel();
-          break;
-        case "n":
-        case "N":
-          nextLevel();
-          break;
-      }
-    });
+    const bike = {
+      x: 100, y: 0, vx: 0, vy: 0, angle: 0, angVel: 0, 
+      frontGrounded: false, rearGrounded: false,
+      wheelbase: 36, rideHeight: 20, dead: false
+    };
 
-    window.addEventListener("keyup", (e) => {
-      switch (e.key) {
-        case "ArrowLeft": keys.left = false; break;
-        case "ArrowRight": keys.right = false; break;
-        case "ArrowUp": keys.up = false; break;
-        case " ": keys.brake = false; break;
-      }
-    });
+    const camera = { x: 0, y: 0 };
+    let track = [];
+    let particles = [];
+    let finishLineX = 0;
 
-    function bindButton(id, keyName) {
-      const el = document.getElementById(id);
-      const set = (v) => { keys[keyName] = v; };
-      const start = (ev) => { ev.preventDefault(); set(true); };
-      const end = (ev) => { ev.preventDefault(); set(false); };
-      ["pointerdown", "touchstart"].forEach(ev => el.addEventListener(ev, start));
-      ["pointerup", "pointerleave", "touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, end));
-    }
-
-    bindButton("btnLeft", "left");
-    bindButton("btnRight", "right");
-    bindButton("btnGas", "up");
-    bindButton("btnBrake", "brake");
-
-    document.getElementById("btnRestart").addEventListener("pointerdown", (e) => { e.preventDefault(); resetLevel(); });
-    document.getElementById("btnNext").addEventListener("pointerdown", (e) => { e.preventDefault(); nextLevel(); });
-
-    // ===== Levels / terrain =====
-    const levels = [];
-    for (let i = 1; i <= 50; i++) {
-      levels.push({
-        id: i,
-        length: 2600 + i * 90,
-        gapChance: 0.01 + i * 0.0008,      // less gaps
-        spikeChance: 0.008 + i * 0.0012,   // fewer spikes
-        slopeIntensity: 0.6 + i * 0.012,   // smoother but still harder later
-        checkpointEvery: 700 - i * 3,
-        gravity: 0.5 + i * 0.003,          // slightly softer gravity
-        maxSpeed: 15 + i * 0.14
-      });
-    }
-
-    let currentLevelIndex = 0;
-    let trackPoints = [];
-    let obstacles = [];
-
-    function generateLevel(levelConfig) {
-      trackPoints = [];
-      obstacles = [];
-
-      const step = 18;
-      const length = levelConfig.length;
+    // Level Generation
+    function generateTrack(levelIdx) {
+      track = [];
+      const length = 3000 + (levelIdx * 500);
       let x = 0;
-      let baseY = H() * 0.7;
+      let y = H() * 0.7;
       let phase = 0;
 
-      while (x <= length) {
-        const bigRoll = Math.sin(phase * 0.35) * 55;
-        const medium = Math.sin(phase * 0.9) * 22;
-        const small = Math.sin(phase * 2.1) * 9;
-        let y = baseY + (bigRoll + medium + small) * levelConfig.slopeIntensity;
+      while(x < length) {
+        // Procedural terrain generation using sine waves
+        const intensity = 0.4 + (levelIdx * 0.05);
+        y += (Math.sin(phase) * 30 + Math.cos(phase * 2.3) * 15) * intensity;
+        
+        // Add random bumps
+        if(Math.random() < 0.1) y -= Math.random() * 20;
 
-        // Gentle random noise + subtle ruts
-        y += (Math.random() - 0.5) * 5;
-        y += Math.sin(x * 0.02) * 3;
-
-        // Occasional gap (but not insane)
-        if (Math.random() < levelConfig.gapChance && x > 350 && x < length - 450) {
-          y = H() + 220;
-          obstacles.push({
-            type: "gap",
-            xStart: x - step,
-            xEnd: x + step
-          });
-        }
-
-        trackPoints.push({ x, y });
-        x += step;
-        phase += 0.18;
+        track.push({ x, y });
+        x += 25; // Resolution
+        phase += 0.15;
       }
-
-      // Spikes
-      for (let i = 5; i < trackPoints.length - 5; i++) {
-        if (Math.random() < levelConfig.spikeChance) {
-          const p = trackPoints[i];
-          if (p.y < H()) {
-            obstacles.push({
-              type: "spike",
-              x: p.x,
-              y: p.y - 12,
-              width: 20,
-              height: 20
-            });
-          }
-        }
-      }
-
-      // Checkpoints
-      const cpStep = Math.max(450, levelConfig.checkpointEvery);
-      for (let cx = cpStep; cx < length - 250; cx += cpStep) {
-        const y = getTrackYRaw(cx);
-        obstacles.push({
-          type: "checkpoint",
-          x: cx,
-          y: y - 30,
-          radius: 14
-        });
-      }
-
-      // Finish
-      const finishX = length - 160;
-      const finishY = getTrackYRaw(finishX);
-      obstacles.push({
-        type: "finish",
-        x: finishX,
-        y: finishY - 60,
-        width: 24,
-        height: 100
-      });
-    }
-
-    function getTrackYRaw(worldX) {
-      if (trackPoints.length === 0) return H() * 0.7;
-      if (worldX <= 0) return trackPoints[0].y;
-      if (worldX >= trackPoints[trackPoints.length - 1].x) {
-        return trackPoints[trackPoints.length - 1].y;
-      }
-      const step = trackPoints[1].x - trackPoints[0].x;
-      const i = Math.floor(worldX / step);
-      const p0 = trackPoints[i];
-      const p1 = trackPoints[i + 1];
-      const t = (worldX - p0.x) / (p1.x - p0.x);
-      return p0.y * (1 - t) + p1.y * t;
-    }
-
-    function getTrackNormal(worldX) {
-      const step = trackPoints[1].x - trackPoints[0].x;
-      const x0 = Math.max(0, worldX - step);
-      const x1 = Math.min(trackPoints[trackPoints.length - 1].x, worldX + step);
-      const y0 = getTrackYRaw(x0);
-      const y1 = getTrackYRaw(x1);
-      const dx = x1 - x0;
-      const dy = y1 - y0;
-      const len = Math.hypot(dx, dy) || 1;
-      return { nx: -dy / len, ny: dx / len };
-    }
-
-    // ===== Procedural Dirt Texture =====
-    let dirtPattern = null;
-
-    function generateDirtTexture() {
-      const size = 120;
-      const tex = document.createElement("canvas");
-      tex.width = size;
-      tex.height = size;
-      const tctx = tex.getContext("2d");
-
-      // Base dirt color
-      tctx.fillStyle = "#3b2f23";
-      tctx.fillRect(0, 0, size, size);
-
-      // Dark grain
-      for (let i = 0; i < 350; i++) {
-        const x = Math.random() * size;
-        const y = Math.random() * size;
-        const alpha = 0.15 + Math.random() * 0.25;
-        tctx.fillStyle = `rgba(0,0,0,${alpha})`;
-        tctx.fillRect(x, y, 2, 2);
-      }
-
-      // Light speckles
-      for (let i = 0; i < 250; i++) {
-        const x = Math.random() * size;
-        const y = Math.random() * size;
-        const alpha = 0.1 + Math.random() * 0.2;
-        tctx.fillStyle = `rgba(255,255,255,${alpha})`;
-        tctx.fillRect(x, y, 1.5, 1.5);
-      }
-
-      // Subtle horizontal ruts
-      tctx.strokeStyle = "rgba(0,0,0,0.25)";
-      tctx.lineWidth = 1;
-      for (let y = 10; y < size; y += 14) {
-        tctx.beginPath();
-        tctx.moveTo(0, y + Math.random() * 3);
-        tctx.lineTo(size, y + Math.random() * 3);
-        tctx.stroke();
-      }
-
-      dirtPattern = ctx.createPattern(tex, "repeat");
-    }
-
-    generateDirtTexture();
-
-    // ===== Bike physics =====
-    const bike = {
-      x: 100,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      angle: 0,
-      angVel: 0,
-      onGround: false,
-      dead: false,
-      finished: false,
-      lastCheckpointX: 100,
-      lastCheckpointY: 0
-    };
-
-    const camera = { x: 0 };
-
-    let levelTime = 0;
-    let lastTimestamp = performance.now();
-
-    const bikeLabel = document.getElementById("bikeLabel");
-    const levelLabel = document.getElementById("levelLabel");
-    const timeLabel = document.getElementById("timeLabel");
-    const speedLabel = document.getElementById("speedLabel");
-
-    function resetBike() {
-      const startY = getTrackYRaw(100);
+      finishLineX = track[track.length - 2].x;
+      
       bike.x = 100;
-      bike.y = startY - 24;
-      bike.vx = 0;
-      bike.vy = 0;
-      bike.angle = 0;
-      bike.angVel = 0;
-      bike.onGround = true;
+      bike.y = getTrackY(100) - 50;
+      bike.vx = bike.vy = bike.angle = bike.angVel = 0;
       bike.dead = false;
-      bike.finished = false;
-      bike.lastCheckpointX = bike.x;
-      bike.lastCheckpointY = bike.y;
-      camera.x = 0;
-      levelTime = 0;
+      gameState.time = 0;
+      gameState.tricks = 0;
+      gameState.airRot = 0;
+      camera.x = 0; camera.y = bike.y - H()*0.5;
     }
 
-    function resetLevel() {
-      const levelConfig = levels[currentLevelIndex];
-      generateLevel(levelConfig);
-      resetBike();
+    function getTrackY(xPos) {
+      if (xPos <= track[0].x) return track[0].y;
+      if (xPos >= track[track.length - 1].x) return track[track.length - 1].y;
+      
+      const step = 25;
+      const i = Math.floor(xPos / step);
+      if (i >= track.length - 1) return track[track.length - 1].y;
+      
+      const p1 = track[i];
+      const p2 = track[i+1];
+      const t = (xPos - p1.x) / (p2.x - p1.x);
+      return p1.y + (p2.y - p1.y) * t;
     }
 
-    function nextLevel() {
-      currentLevelIndex = (currentLevelIndex + 1) % levels.length;
-      resetLevel();
-    }
-
-    function killRider() {
-      if (bike.dead || bike.finished) return;
-      bike.dead = true;
-      engineSound.pause();
-      engineSound.currentTime = 0;
-      setTimeout(resetLevel, 900);
-    }
-
-    function finishLevel() {
-      if (bike.dead || bike.finished) return;
-      bike.finished = true;
-      engineSound.pause();
-      engineSound.currentTime = 0;
-      setTimeout(nextLevel, 1200);
-    }
-
-    resetLevel();
-
-    function update(dt) {
-      const levelConfig = levels[currentLevelIndex];
-      const bikeType = bikes[currentBikeIndex];
-
-      if (!bike.dead && !bike.finished) {
-        levelTime += dt / 1000;
+    // Physics Engine (2-Point Suspension System)
+    function updatePhysics(dt) {
+      if (!gameState.running || bike.dead) {
+         if(bike.dead) {
+            bike.x += bike.vx;
+            bike.y += bike.vy;
+            bike.vy += 0.5; // Gravity
+            bike.angle += bike.angVel;
+         }
+         return;
       }
 
-      // Engine sound
-      const targetRate = 0.7 + (keys.up ? 0.6 : 0) + Math.min(Math.abs(bike.vx) / levelConfig.maxSpeed, 1) * 0.6;
-      engineSound.playbackRate = targetRate;
-
-      if ((keys.up || Math.abs(bike.vx) > 0.5) && !bike.dead && !bike.finished) {
-        if (engineSound.paused) {
-          engineSound.play().catch(() => {});
-        }
-      } else {
-        engineSound.pause();
-      }
-
-      if (bike.dead || bike.finished) {
-        bike.vx *= 0.985;
-        bike.vy += levelConfig.gravity * bikeType.weight;
-        bike.x += bike.vx;
-        bike.y += bike.vy;
-        bike.angle += bike.angVel;
-        bike.angVel *= 0.99;
-        return;
-      }
-
-      // Engine / brake
-      if (keys.up) {
-        const engineForce = 0.40 * bikeType.power;
-        bike.vx += engineForce;
-      }
-
-      if (keys.brake) {
-        const brakeForce = 0.5 * bikeType.grip;
-        if (bike.vx > 0) {
-          bike.vx -= brakeForce;
-          if (bike.vx < 0) bike.vx = 0;
-        }
-      }
-
-      // Cap speed
-      const maxSpeed = levelConfig.maxSpeed * bikeType.power;
-      if (bike.vx > maxSpeed) bike.vx = maxSpeed;
-
-      // Air control
-      if (!bike.onGround) {
-        const airTorque = 0.0030 * bikeType.airControl * dt;
-        if (keys.left) bike.angVel -= airTorque;
-        if (keys.right) bike.angVel += airTorque;
-      } else {
-        if (keys.left) bike.vx -= 0.018 * bikeType.grip;
-        if (keys.right) bike.vx += 0.018 * bikeType.grip;
-      }
+      gameState.time += dt;
+      const stats = bikes[currentBikeIndex];
 
       // Gravity
-      bike.vy += levelConfig.gravity * bikeType.weight;
+      bike.vy += 0.4; 
 
-      // Integrate
+      // Wheel Positions based on angle
+      const cosA = Math.cos(bike.angle);
+      const sinA = Math.sin(bike.angle);
+      
+      const rearX = bike.x - (bike.wheelbase/2) * cosA;
+      const rearY = bike.y - (bike.wheelbase/2) * sinA + bike.rideHeight;
+      const frontX = bike.x + (bike.wheelbase/2) * cosA;
+      const frontY = bike.y + (bike.wheelbase/2) * sinA + bike.rideHeight;
+
+      // Track height at wheels
+      const trackRearY = getTrackY(rearX);
+      const trackFrontY = getTrackY(frontX);
+
+      bike.rearGrounded = rearY >= trackRearY;
+      bike.frontGrounded = frontY >= trackFrontY;
+
+      // Suspension & Terrain Following
+      if (bike.rearGrounded || bike.frontGrounded) {
+        // Target angle based on terrain slope beneath wheels
+        const targetAngle = Math.atan2(trackFrontY - trackRearY, bike.wheelbase);
+        // Target Y to keep wheels on ground
+        const targetY = ((trackFrontY + trackRearY) / 2) - bike.rideHeight;
+
+        // Smooth spring interpolation
+        bike.y += (targetY - bike.y) * 0.4;
+        bike.vy = 0; 
+        
+        // Align bike to ground smoothly
+        let angleDiff = targetAngle - bike.angle;
+        // Normalize angle difference
+        while(angleDiff > Math.PI) angleDiff -= Math.PI*2;
+        while(angleDiff < -Math.PI) angleDiff += Math.PI*2;
+        
+        bike.angle += angleDiff * 0.3;
+        bike.angVel = 0;
+
+        // Trick check
+        if(Math.abs(gameState.airRot) > Math.PI * 1.5) {
+            gameState.tricks++;
+            hudTrick.style.display = "block";
+            setTimeout(() => hudTrick.style.display = "none", 1500);
+        }
+        gameState.airRot = 0;
+
+        // Ground Controls
+        if (input.gas) {
+          bike.vx += stats.accel;
+          if(Math.random() < 0.3) spawnParticle(rearX, rearY, -bike.vx*0.5, -2, "#5c4033"); // Dirt
+        }
+        if (input.brake) bike.vx *= (1 - 0.05 * stats.grip);
+        if (input.left) bike.vx -= 0.1; // Shift weight back
+        if (input.right) bike.vx += 0.1; // Shift weight forward
+
+      } else {
+        // Air Controls
+        if (input.left) bike.angVel -= 0.003 * stats.air;
+        if (input.right) bike.angVel += 0.003 * stats.air;
+        
+        // Track flips
+        let delta = bike.angle - gameState.lastAngle;
+        while(delta > Math.PI) delta -= Math.PI*2;
+        while(delta < -Math.PI) delta += Math.PI*2;
+        gameState.airRot += delta;
+      }
+      
+      gameState.lastAngle = bike.angle;
+
+      // Friction & Drag
+      bike.vx *= 0.99;
+      if (bike.vx > stats.speed) bike.vx = stats.speed;
+
+      // Apply Velocity
       bike.x += bike.vx;
       bike.y += bike.vy;
       bike.angle += bike.angVel;
 
-      // Damping
-      bike.vx *= 0.992;
-      bike.angVel *= 0.985;
+      // Crash Detection
+      if(bike.frontGrounded && angleDiff && Math.abs(angleDiff) > 1.2) crash();
+      if(bike.y > getTrackY(bike.x) + 20) crash(); // Frame hit ground hard
 
-      // Ground collision
-      const groundY = getTrackYRaw(bike.x);
-      if (bike.y >= groundY - 22) {
-        const impactSpeed = bike.vy;
-        const { nx, ny } = getTrackNormal(bike.x);
-        const groundAngle = Math.atan2(ny, nx) - Math.PI / 2;
-        const angleDiff = Math.abs(((bike.angle - groundAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
-
-        // More forgiving crash thresholds
-        if (impactSpeed > 13 && angleDiff > 1.0) {
-          killRider();
-          return;
-        }
-
-        bike.vy = 0;
-        bike.y = groundY - 22;
-        bike.onGround = true;
-
-        // Stronger alignment to ground for stability
-        bike.angle += (groundAngle - bike.angle) * 0.35;
-        bike.angVel *= 0.35;
+      // Engine Sound
+      if(input.gas) {
+        if(engineSound.paused) engineSound.play().catch(()=>{});
+        engineSound.playbackRate = 1.0 + (bike.vx / stats.speed) * 1.5;
+        // Exhaust Smoke
+        if(Math.random() < 0.2) spawnParticle(bike.x - 20*cosA, bike.y - 10, -1, -1, "rgba(200,200,200,0.5)");
       } else {
-        bike.onGround = false;
+        engineSound.playbackRate = 0.8;
       }
 
-      // Upside‑down in air (more forgiving)
-      if (!bike.onGround && Math.abs(((bike.angle + Math.PI) % (Math.PI * 2)) - Math.PI) > 2.3) {
-        killRider();
+      // Camera Follow
+      camera.x += (bike.x - W()*0.3 - camera.x) * 0.1;
+      camera.y += (bike.y - H()*0.6 - camera.y) * 0.1;
+
+      // Win Condition
+      if(bike.x >= finishLineX) {
+          gameState.running = false;
+          engineSound.pause();
+          document.getElementById('finish-time').innerText = gameState.time.toFixed(2) + "s";
+          document.getElementById('finish-tricks').innerText = `Backflips/Frontflips: ${gameState.tricks}`;
+          finishMenu.classList.remove('hidden');
       }
 
-      // Obstacles
-      for (const o of obstacles) {
-        const sx = o.x;
-        if (o.type === "spike") {
-          const dx = bike.x - sx;
-          const dy = bike.y - (o.y - 5);
-          if (Math.abs(dx) < 20 && Math.abs(dy) < 20) {
-            killRider();
-            break;
-          }
-        } else if (o.type === "finish") {
-          if (bike.x > o.x - 10 && bike.x < o.x + o.width + 10 && bike.y > o.y - 60) {
-            finishLevel();
-            break;
-          }
-        } else if (o.type === "checkpoint") {
-          const dx = bike.x - o.x;
-          const dy = bike.y - o.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < o.radius + 18) {
-            bike.lastCheckpointX = o.x;
-            bike.lastCheckpointY = getTrackYRaw(o.x) - 22;
-          }
-        }
-      }
-
-      // Fall off world -> respawn at last checkpoint instead of instant death
-      if (bike.y > H() + 260) {
-        bike.x = bike.lastCheckpointX;
-        bike.y = bike.lastCheckpointY;
-        bike.vx = 0;
-        bike.vy = 0;
-        bike.angle = 0;
-        bike.angVel = 0;
-      }
-
-      // Camera follow
-      const targetCamX = bike.x - W() * 0.45;
-      camera.x += (targetCamX - camera.x) * 0.12;
-      camera.x = Math.max(0, Math.min(camera.x, levels[currentLevelIndex].length - W()));
-
-      // HUD
-      bikeLabel.textContent = "Bike: " + bikeType.id;
-      levelLabel.textContent = "Level: " + (currentLevelIndex + 1) + " / " + levels.length;
-      timeLabel.textContent = "Time: " + levelTime.toFixed(1) + "s";
-      speedLabel.textContent = "Speed: " + Math.abs(bike.vx).toFixed(1);
+      // Update UI
+      hudTime.innerText = gameState.time.toFixed(2) + "s";
     }
 
-    // ===== Drawing =====
-    function drawBackground() {
-      const h = H();
-      const w = W();
-      const horizon = h * 0.45;
+    function crash() {
+        if(bike.dead) return;
+        bike.dead = true;
+        bike.vx = 0; 
+        bike.vy = -5; // Bounce up
+        bike.angVel = (Math.random() - 0.5) * 0.5;
+        setTimeout(() => generateTrack(currentLevel), 1500); // Restart
+    }
 
-      // Far hills
-      ctx.fillStyle = "#0b1020";
+    function spawnParticle(x, y, vx, vy, color) {
+        particles.push({x, y, vx, vy, color, life: 1.0});
+    }
+
+    // High Quality Render Engine
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Parallax Background
+      const w = W(), h = H();
+      
+      // Sky gradient
+      const grad = ctx.createLinearGradient(0,0,0,h);
+      grad.addColorStop(0, "#0a1128"); grad.addColorStop(1, "#1c2a4f");
+      ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+
+      // Mountains (Layer 1 - Slow)
+      ctx.fillStyle = "#121a30";
       ctx.beginPath();
       ctx.moveTo(0, h);
-      for (let x = 0; x <= w; x += 12) {
-        const worldX = x + camera.x * 0.25;
-        const y =
-          horizon +
-          Math.sin(worldX * 0.0015) * 30 +
-          Math.cos(worldX * 0.0007) * 20;
-        ctx.lineTo(x, y);
+      for(let i=0; i<w; i+=50) {
+          ctx.lineTo(i, h*0.5 + Math.sin((i + camera.x*0.1)*0.005)*100);
       }
-      ctx.lineTo(w, h);
-      ctx.closePath();
-      ctx.fill();
+      ctx.lineTo(w, h); ctx.fill();
 
-      // Mid hills
-      ctx.fillStyle = "#11182b";
+      // Hills (Layer 2 - Medium)
+      ctx.fillStyle = "#18233e";
       ctx.beginPath();
       ctx.moveTo(0, h);
-      for (let x = 0; x <= w; x += 12) {
-        const worldX = x + camera.x * 0.5;
-        const y =
-          horizon +
-          40 +
-          Math.sin(worldX * 0.002) * 35 +
-          Math.cos(worldX * 0.001) * 25;
-        ctx.lineTo(x, y);
+      for(let i=0; i<w; i+=30) {
+          ctx.lineTo(i, h*0.6 + Math.cos((i + camera.x*0.3)*0.01)*60);
       }
-      ctx.lineTo(w, h);
-      ctx.closePath();
-      ctx.fill();
-    }
+      ctx.lineTo(w, h); ctx.fill();
 
-    function drawTrack() {
-      if (trackPoints.length === 0) return;
-      const h = H();
-
-      // Textured dirt under track
-      ctx.fillStyle = dirtPattern;
-      ctx.beginPath();
-      ctx.moveTo(trackPoints[0].x - camera.x, h);
-      for (let i = 0; i < trackPoints.length; i++) {
-        const sx = trackPoints[i].x - camera.x;
-        const sy = trackPoints[i].y;
-        ctx.lineTo(sx, sy);
-      }
-      ctx.lineTo(trackPoints[trackPoints.length - 1].x - camera.x, h);
-      ctx.closePath();
-      ctx.fill();
-
-      // Dark outline
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = "#1e1e1e";
-      ctx.beginPath();
-      for (let i = 0; i < trackPoints.length; i++) {
-        const sx = trackPoints[i].x - camera.x;
-        const sy = trackPoints[i].y;
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.stroke();
-
-      // Highlight ridge
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.beginPath();
-      for (let i = 0; i < trackPoints.length; i++) {
-        const sx = trackPoints[i].x - camera.x;
-        const sy = trackPoints[i].y - 2;
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.stroke();
-    }
-
-    function drawObstacles() {
-      for (const o of obstacles) {
-        const sx = o.x - camera.x;
-        if (o.type === "spike") {
-          ctx.fillStyle = "#ff4b5c";
+      // Track Terrain
+      if(track.length > 0) {
+          ctx.fillStyle = "#3b2f23"; // Dirt
           ctx.beginPath();
-          ctx.moveTo(sx - o.width / 2, o.y + o.height / 2);
-          ctx.lineTo(sx, o.y - o.height / 2);
-          ctx.lineTo(sx + o.width / 2, o.y + o.height / 2);
-          ctx.closePath();
+          ctx.moveTo(track[0].x - camera.x, h + camera.y);
+          for(let p of track) {
+              ctx.lineTo(p.x - camera.x, p.y - camera.y);
+          }
+          ctx.lineTo(track[track.length-1].x - camera.x, h + camera.y);
           ctx.fill();
-        } else if (o.type === "finish") {
-          ctx.save();
-          ctx.translate(sx, o.y);
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, o.width, o.height);
-          ctx.fillStyle = "#000000";
-          const cell = 8;
-          for (let y = 0; y < o.height; y += cell) {
-            for (let x = 0; x < o.width; x += cell) {
-              if (((x + y) / cell) % 2 === 0) {
-                ctx.fillRect(x, y, cell, cell);
-              }
-            }
+
+          // Grass/Top layer
+          ctx.strokeStyle = "#4a6b2c";
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          for(let p of track) {
+              ctx.lineTo(p.x - camera.x, p.y - camera.y);
           }
-          ctx.restore();
-        } else if (o.type === "checkpoint") {
-          ctx.save();
-          ctx.translate(sx, o.y);
-          ctx.strokeStyle = "#00ff88";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(0, 0, o.radius, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(0, -o.radius);
-          ctx.lineTo(0, o.radius);
-          ctx.stroke();
-          ctx.restore();
-        }
+
+          // Finish Line Marker
+          const fx = finishLineX - camera.x;
+          const fy = getTrackY(finishLineX) - camera.y;
+          ctx.fillStyle = "white"; ctx.fillRect(fx, fy - 100, 5, 100); // Pole
+          // Checkered Flag
+          for(let r=0; r<4; r++) {
+              for(let c=0; c<6; c++) {
+                  ctx.fillStyle = (r+c)%2===0 ? "white" : "black";
+                  ctx.fillRect(fx + 5 + c*8, fy - 100 + r*8, 8, 8);
+              }
+          }
       }
-    }
 
-    function drawBike() {
-      const bikeType = bikes[currentBikeIndex];
-      const sx = bike.x - camera.x;
-      const sy = bike.y;
+      // Particles
+      for(let i = particles.length-1; i>=0; i--) {
+          let p = particles[i];
+          p.x += p.vx; p.y += p.vy;
+          p.vy += 0.1; // gravity
+          p.life -= 0.02;
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x - camera.x, p.y - camera.y, 3, 0, Math.PI*2); ctx.fill();
+          if(p.life <= 0) particles.splice(i, 1);
+      }
+      ctx.globalAlpha = 1.0;
 
+      // Realistic Bike Rendering
       ctx.save();
-      ctx.translate(sx, sy);
+      ctx.translate(bike.x - camera.x, bike.y - camera.y);
       ctx.rotate(bike.angle);
 
-      // Shadow
-      ctx.save();
-      ctx.translate(0, 24);
-      ctx.scale(1.6, 0.45);
-      ctx.fillStyle = "rgba(0,0,0,0.45)";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 26, 11, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      const color = bikes[currentBikeIndex].color;
 
-      // Wheels (slightly bigger, MX style)
-      function drawWheel(x, y) {
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#000000";
-        ctx.fillStyle = "#222833";
-        ctx.beginPath();
-        ctx.arc(x, y, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+      // Helper function for wheels
+      const drawWheel = (wx, wy) => {
+          ctx.save();
+          ctx.translate(wx, wy);
+          ctx.rotate((bike.x) * 0.1); // Spin based on distance
+          // Knobby Tire
+          ctx.lineWidth = 4; ctx.strokeStyle = "#111";
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI*2); ctx.stroke();
+          ctx.setLineDash([]);
+          // Rim
+          ctx.lineWidth = 2; ctx.strokeStyle = "#888";
+          ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.stroke();
+          // Spokes
+          ctx.lineWidth = 1; ctx.strokeStyle = "#ccc";
+          for(let i=0; i<6; i++) {
+              ctx.beginPath(); ctx.moveTo(0,0); 
+              ctx.lineTo(Math.cos(i*Math.PI/3)*9, Math.sin(i*Math.PI/3)*9); 
+              ctx.stroke();
+          }
+          ctx.restore();
+      };
 
-        ctx.strokeStyle = "#555f73";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x - 10, y);
-        ctx.lineTo(x + 10, y);
-        ctx.moveTo(x, y - 10);
-        ctx.lineTo(x, y + 10);
-        ctx.stroke();
-      }
+      // Draw Wheels
+      const hw = bike.wheelbase/2;
+      drawWheel(-hw, bike.rideHeight); // Rear
+      drawWheel(hw, bike.rideHeight);  // Front
 
-      const rearWheelY = 10;
-      const frontWheelY = 10;
-      drawWheel(-24, rearWheelY);
-      drawWheel(24, frontWheelY);
-
-      // Frame (more realistic MX silhouette, generic)
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = bikeType.color;
-      ctx.beginPath();
-      // lower frame / swingarm
-      ctx.moveTo(-24, 4);
-      ctx.lineTo(-10, -4);
-      ctx.lineTo(4, -6);
-      ctx.lineTo(18, -2);
-      ctx.lineTo(26, 4);
-      ctx.lineTo(12, 10);
-      ctx.lineTo(-12, 10);
-      ctx.closePath();
+      // Frame / Swingarm / Forks
+      ctx.strokeStyle = "#bbb"; ctx.lineWidth = 3; ctx.lineCap = "round";
+      ctx.beginPath(); 
+      ctx.moveTo(-hw, bike.rideHeight); // Rear axle
+      ctx.lineTo(-5, 0); // Pivot
+      ctx.lineTo(10, -5); // Steering head
+      ctx.lineTo(hw, bike.rideHeight); // Front axle (Forks)
       ctx.stroke();
 
-      // Tank / shrouds
-      ctx.fillStyle = bikeType.color;
+      // Engine Block
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-8, 2, 14, 12);
+      ctx.fillStyle = "#555";
+      ctx.fillRect(-5, -2, 8, 8); // Cylinder
+      
+      // Exhaust
+      ctx.strokeStyle = "#777"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, 5); ctx.quadraticCurveTo(-15, 15, -hw-5, bike.rideHeight-5); ctx.stroke();
+
+      // Plastics & Tank
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.moveTo(-8, -12);
-      ctx.lineTo(10, -12);
-      ctx.lineTo(16, -6);
-      ctx.lineTo(2, -4);
-      ctx.lineTo(-10, -6);
-      ctx.closePath();
+      ctx.moveTo(-10, -5); // Seat rear
+      ctx.lineTo(5, -8); // Tank high
+      ctx.lineTo(12, -2); // Shroud front
+      ctx.lineTo(5, 5); // Shroud bottom
       ctx.fill();
 
       // Seat
-      ctx.fillStyle = "#111111";
-      ctx.beginPath();
-      ctx.moveTo(-6, -14);
-      ctx.lineTo(12, -14);
-      ctx.lineTo(8, -10);
-      ctx.lineTo(-8, -10);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillStyle = "#111";
+      ctx.beginPath(); ctx.moveTo(-15, -3); ctx.lineTo(2, -8); ctx.lineTo(4, -5); ctx.lineTo(-12, 0); ctx.fill();
 
-      // Forks
-      ctx.strokeStyle = "#d0d4e0";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(8, -6);
-      ctx.lineTo(22, 6);
-      ctx.stroke();
+      // Dynamic Rider Rendering
+      if(!bike.dead) {
+          // Body leans based on input
+          let leanX = 0;
+          if(input.right) leanX = 8;
+          if(input.left) leanX = -8;
+          
+          const hipX = -5, hipY = -5;
+          const shoulderX = hipX + leanX, shoulderY = hipY - 15;
 
-      // Bars
-      ctx.beginPath();
-      ctx.moveTo(-2, -18);
-      ctx.lineTo(8, -20);
-      ctx.stroke();
-
-      // Rider
-      ctx.strokeStyle = "#f5f5f7";
-      ctx.lineWidth = 2;
-      // torso
-      ctx.beginPath();
-      ctx.moveTo(-2, -16);
-      ctx.lineTo(-2, -28);
-      ctx.stroke();
-      // head
-      ctx.beginPath();
-      ctx.arc(-2, -32, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "#f5f5f7";
-      ctx.fill();
-      // arms
-      ctx.beginPath();
-      ctx.moveTo(-2, -22);
-      ctx.lineTo(6, -18);
-      ctx.stroke();
-      // legs
-      ctx.beginPath();
-      ctx.moveTo(-2, -16);
-      ctx.lineTo(-10, 6);
-      ctx.stroke();
+          // Legs
+          ctx.strokeStyle = "#222"; ctx.lineWidth = 4; ctx.lineJoin = "round";
+          ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(0, 5); ctx.lineTo(-2, 10); ctx.stroke(); // Footpeg
+          
+          // Torso
+          ctx.strokeStyle = color; ctx.lineWidth = 6;
+          ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(shoulderX, shoulderY); ctx.stroke();
+          
+          // Arms
+          ctx.strokeStyle = color; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY); ctx.lineTo(5, -8); ctx.lineTo(10, -10); ctx.stroke(); // To Handlebars
+          
+          // Helmet
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(shoulderX + (leanX*0.2), shoulderY - 6, 5, 0, Math.PI*2); ctx.fill();
+          // Goggles/Visor
+          ctx.fillStyle = "#111";
+          ctx.fillRect(shoulderX + (leanX*0.2) + 2, shoulderY - 8, 4, 3);
+      }
 
       ctx.restore();
     }
 
-    // ===== Loop =====
-    function loop(timestamp) {
-      const dt = timestamp - lastTimestamp;
-      lastTimestamp = timestamp;
-
-      update(dt);
-
-      ctx.clearRect(0, 0, W(), H());
-      drawBackground();
-      drawTrack();
-      drawObstacles();
-      drawBike();
-
+    // Main Loop
+    function loop(now) {
       requestAnimationFrame(loop);
+      const dt = Math.min((now - gameState.lastFrame) / 1000, 0.1);
+      gameState.lastFrame = now;
+      
+      updatePhysics(dt);
+      draw();
     }
 
+    // UI Logic
+    function buildLevelMenu() {
+        levelGrid.innerHTML = "";
+        for(let i=0; i<20; i++) {
+            let btn = document.createElement("button");
+            btn.className = "level-btn" + (i===currentLevel ? " current" : "");
+            btn.innerText = "Track " + (i+1);
+            btn.onclick = () => { currentLevel = i; buildLevelMenu(); };
+            levelGrid.appendChild(btn);
+        }
+    }
+
+    document.querySelectorAll('.bike-card').forEach((card, idx) => {
+        card.onclick = () => {
+            document.querySelectorAll('.bike-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            currentBikeIndex = idx;
+        }
+    });
+
+    document.getElementById('btn-play').onclick = () => {
+        mainMenu.classList.add('hidden');
+        generateTrack(currentLevel);
+        gameState.running = true;
+    };
+
+    document.getElementById('btn-next-level').onclick = () => {
+        finishMenu.classList.add('hidden');
+        currentLevel++;
+        buildLevelMenu();
+        generateTrack(currentLevel);
+        gameState.running = true;
+    };
+
+    document.getElementById('btn-finish-menu').onclick = () => {
+        finishMenu.classList.add('hidden');
+        mainMenu.classList.remove('hidden');
+    };
+
+    // Init
+    buildLevelMenu();
+    document.querySelectorAll('.bike-card')[0].classList.add('active');
     requestAnimationFrame(loop);
+
   </script>
 </body>
 </html>
