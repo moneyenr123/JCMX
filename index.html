@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>JCMX PRO | First-Person Motocross Simulator</title>
+    <title>JCMX | Pro-Spec Simulator</title>
     
     <link rel="icon" type="image/png" href="../favicon.png">
     <link rel="apple-touch-icon" href="../favicon.png">
@@ -13,187 +13,115 @@
 
     <style>
         :root {
-            --neon-green: #39ff14;
-            --honda-red: #ff1100;
-            --yamaha-blue: #0055ff;
-            --panel-bg: rgba(0, 0, 0, 0.85);
-            --font-main: 'Arial Black', Gadget, sans-serif;
+            --kx-green: #39ff14;
+            --crf-red: #ff1100;
+            --yz-blue: #0055ff;
+            --ui-gold: #ffcc00;
         }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #050505;
-            color: #fff; font-family: var(--font-main);
+            overflow: hidden; background: #050505;
+            color: #fff; font-family: 'Arial Black', sans-serif;
             user-select: none; touch-action: none;
         }
 
-        canvas { display: block; width: 100vw; height: 100vh; }
+        canvas { display: block; }
 
-        /* --- LOADING & SPLASH --- */
-        #splash-screen {
-            position: fixed; inset: 0; z-index: 1000;
-            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        /* --- GARAGE MENU --- */
+        #menu-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 1s ease;
+            transition: opacity 0.8s ease;
         }
 
-        .logo-box { text-align: center; margin-bottom: 50px; }
-        .logo-main {
-            font-size: clamp(5rem, 15vw, 12rem); font-style: italic;
-            background: linear-gradient(180deg, #fff 0%, #777 100%);
+        .brand-header { text-align: center; margin-bottom: 40px; }
+        .jcmx-title {
+            font-size: 8rem; font-style: italic; letter-spacing: -5px;
+            background: linear-gradient(to bottom, #fff, #666);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
-            margin: 0; line-height: 0.8;
+            margin: 0; line-height: 0.8; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1));
         }
-        .logo-sub {
-            letter-spacing: 15px; color: #555; font-size: 1.2rem;
-            text-transform: uppercase; margin-top: 10px;
-        }
+        .jcmx-sub { letter-spacing: 12px; color: var(--ui-gold); font-size: 1rem; margin-top: 10px; opacity: 0.8; }
 
-        /* --- GARAGE UI --- */
-        #garage-ui {
-            width: 90%; max-width: 1000px;
-            background: var(--panel-bg); padding: 40px;
-            border-radius: 20px; border: 1px solid #333;
-            backdrop-filter: blur(15px); text-align: center;
+        .garage-container {
+            width: 80%; max-width: 900px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            padding: 40px; border-radius: 20px; backdrop-filter: blur(10px);
         }
 
-        .selection-row {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; margin: 30px 0;
+        .bike-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+        .bike-card {
+            padding: 20px; border: 2px solid #222; border-radius: 10px;
+            cursor: pointer; transition: 0.3s; background: #0a0a0a;
         }
+        .bike-card:hover { border-color: #444; transform: translateY(-3px); }
+        .bike-card.active { border-color: var(--active-color); box-shadow: 0 0 20px var(--active-color); }
+        .bike-card h3 { margin: 0; font-size: 1.2rem; }
+        .bike-card p { font-size: 0.7rem; color: #666; margin-top: 5px; text-transform: uppercase; }
 
-        .card {
-            background: #111; border: 2px solid #222; padding: 20px;
-            border-radius: 12px; cursor: pointer; transition: 0.3s;
-        }
-        .card:hover { border-color: #555; transform: translateY(-5px); }
-        .card.active { border-color: var(--active-color); box-shadow: 0 0 20px var(--active-color); }
-
-        .bike-name { font-size: 1.5rem; display: block; margin-bottom: 5px; }
-        .bike-specs { font-family: sans-serif; font-size: 0.8rem; color: #888; text-transform: uppercase; }
-
-        .start-btn {
-            margin-top: 40px; padding: 20px 80px; font-size: 2rem;
+        .btn-start {
+            margin-top: 30px; padding: 20px 60px; font-size: 2rem;
             background: #fff; color: #000; border: none; border-radius: 50px;
-            cursor: pointer; transition: 0.2s;
+            cursor: pointer; font-weight: 900; transition: 0.2s;
         }
-        .start-btn:hover { background: var(--neon-green); transform: scale(1.05); }
+        .btn-start:hover { transform: scale(1.05); background: var(--ui-gold); }
 
         /* --- HUD --- */
-        #hud-container {
+        #hud {
             position: absolute; inset: 0; pointer-events: none;
-            display: none; z-index: 10;
+            display: none; z-index: 50;
         }
+        .speed-cluster {
+            position: absolute; bottom: 50px; right: 50px; text-align: right;
+            border-right: 5px solid var(--ui-gold); padding-right: 20px;
+        }
+        .speed-val { font-size: 6rem; line-height: 0.9; }
+        .speed-unit { font-size: 1.2rem; color: #666; }
 
-        .speedometer {
-            position: absolute; bottom: 40px; right: 40px;
-            text-align: right; border-right: 8px solid var(--neon-green);
-            padding-right: 20px;
+        .rpm-gauge {
+            position: absolute; bottom: 50px; left: 50px; width: 300px;
         }
-        .speed-num { font-size: 5rem; line-height: 1; }
-        .speed-unit { font-size: 1.5rem; color: #888; }
-
-        .tachometer {
-            position: absolute; bottom: 40px; left: 40px; width: 300px;
-        }
-        .rpm-bar-bg { height: 10px; background: #222; border-radius: 5px; overflow: hidden; }
-        .rpm-bar-fill { height: 100%; background: var(--neon-green); width: 10%; transition: width 0.1s; }
-
-        .vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 150%);
-        }
-
-        #dirt-splatter {
-            position: absolute; inset: 0; opacity: 0.3; pointer-events: none;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="10" cy="10" r="2" fill="%234b3621" opacity="0.5"/><circle cx="50" cy="80" r="4" fill="%233e2723" opacity="0.3"/></svg>');
-            display: none;
-        }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            position: absolute; bottom: 20px; width: 100%; display: none;
-            justify-content: space-between; padding: 0 30px; box-sizing: border-box;
-        }
-        .m-group { display: flex; gap: 20px; pointer-events: auto; }
-        .m-btn {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
-            display: flex; align-items: center; justify-content: center; font-size: 2rem;
-        }
+        .rpm-track { height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin-top: 5px; }
+        .rpm-fill { height: 100%; width: 10%; background: var(--ui-gold); }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen">
-        <div class="logo-box">
-            <h1 class="logo-main">JCMX</h1>
-            <div class="logo-sub">PRO SIMULATOR</div>
+    <div id="menu-overlay">
+        <div class="brand-header">
+            <h1 class="jcmx-title">JCMX</h1>
+            <div class="jcmx-sub">ADVANCED SIMULATION</div>
         </div>
 
-        <div id="garage-ui">
-            <h2 style="letter-spacing: 5px; color: #444;">SELECT YOUR MACHINE</h2>
-            <div class="selection-row">
-                <div class="card active" style="--active-color: var(--kx-green)" onclick="selectBike(0, this)">
-                    <span class="bike-name" style="color: var(--kx-green)">KX 85</span>
-                    <span class="bike-specs">2-Stroke | High Rev</span>
+        <div class="garage-container">
+            <div class="bike-grid">
+                <div class="bike-card active" style="--active-color: var(--kx-green)" onclick="setBike(0, this)">
+                    <h3 style="color: var(--kx-green)">KX 85</h3>
+                    <p>High Rev / 2-Stroke</p>
                 </div>
-                <div class="card" style="--active-color: var(--honda-red)" onclick="selectBike(1, this)">
-                    <span class="bike-name" style="color: var(--honda-red)">CRF 450</span>
-                    <span class="bike-specs">4-Stroke | Torque Monster</span>
+                <div class="bike-card" style="--active-color: var(--crf-red)" onclick="setBike(1, this)">
+                    <h3 style="color: var(--crf-red)">CRF 450</h3>
+                    <p>Factory 4-Stroke / Torque</p>
                 </div>
-                <div class="card" style="--active-color: var(--yamaha-blue)" onclick="selectBike(2, this)">
-                    <span class="bike-name" style="color: var(--yamaha-blue)">YZ 250</span>
-                    <span class="bike-specs">2-Stroke | Factory Tuned</span>
-                </div>
-            </div>
-
-            <h2 style="letter-spacing: 5px; color: #444; margin-top: 40px;">SELECT LOCATION</h2>
-            <div class="selection-row">
-                <div class="card active" style="--active-color: #fff" onclick="selectMap('track', this)">
-                    <span class="bike-name">PRO TRACK</span>
-                    <span class="bike-specs">Big Air | Whoops | Ruts</span>
-                </div>
-                <div class="card" style="--active-color: #fff" onclick="selectMap('woods', this)">
-                    <span class="bike-name">DEEP WOODS</span>
-                    <span class="bike-specs">Enduro | Trees | Rocks</span>
-                </div>
-                <div class="card" style="--active-color: #fff" onclick="selectMap('city', this)">
-                    <span class="bike-name">CITY PARK</span>
-                    <span class="bike-specs">Concrete | Stairs | Ramps</span>
+                <div class="bike-card" style="--active-color: var(--yz-blue)" onclick="setBike(2, this)">
+                    <h3 style="color: var(--yz-blue)">YZ 250</h3>
+                    <p>Competition / Powerband</p>
                 </div>
             </div>
-
-            <button class="start-btn" onclick="startSim()">IGNITION</button>
+            <button class="btn-start" onclick="ignition()">RIDE</button>
         </div>
     </div>
 
-    <div id="hud-container">
-        <div class="vignette"></div>
-        <div id="dirt-splatter"></div>
-        
-        <div class="speedometer">
-            <div class="speed-num" id="speed-txt">0</div>
+    <div id="hud">
+        <div class="speed-cluster">
+            <div class="speed-val" id="sp-val">0</div>
             <div class="speed-unit">MPH</div>
         </div>
-
-        <div class="tachometer">
-            <div style="font-size: 0.8rem; margin-bottom: 5px; color: #666;">ENGINE RPM</div>
-            <div class="rpm-bar-bg">
-                <div class="rpm-bar-fill" id="rpm-bar"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="mobile-controls">
-        <div class="m-group">
-            <div class="m-btn" id="m-left">←</div>
-            <div class="m-btn" id="m-right">→</div>
-        </div>
-        <div class="m-group">
-            <div class="m-btn" id="m-brake" style="color: red;">B</div>
-            <div class="m-btn" id="m-gas" style="color: lime;">G</div>
+        <div class="rpm-gauge">
+            <div style="font-size: 0.8rem; color: #555;">ENGINE TACH</div>
+            <div class="rpm-track"><div class="rpm-fill" id="rpm-f"></div></div>
         </div>
     </div>
 
@@ -204,388 +132,285 @@
     <script type="module">
         import * as THREE from 'three';
 
-        /* =========================================
-           JCMX CORE ENGINE ENGINE (1000 LINE TARGET)
-           =========================================
-        */
-
-        // --- GLOBAL CONSTANTS ---
-        const GRAVITY = 32.0;
-        const PHYSICS_STEP = 1/60;
-        const BIKE_CONFIGS = [
-            { name: "KX 85", color: 0x39ff14, power: 55, weight: 150, stroke: 2 },
-            { name: "CRF 450", color: 0xff1100, power: 85, weight: 240, stroke: 4 },
-            { name: "YZ 250", color: 0x0055ff, power: 70, weight: 210, stroke: 2 }
+        // --- ENGINE VARS ---
+        let scene, camera, renderer, clock, terrain;
+        let bikeRoot, forkAssembly, handlebars, frontWheel, rearWheel;
+        let bikeSpecs = [
+            { name: "KX85", color: 0x39ff14, mass: 160, torque: 1.2 },
+            { name: "CRF450", color: 0xff1100, mass: 240, torque: 2.5 },
+            { name: "YZ250", color: 0x0055ff, mass: 215, torque: 1.9 }
         ];
 
-        // --- ENGINE STATE ---
-        let scene, camera, renderer, clock, bikeBody;
-        let terrain, mapObjects = [], decorObjects = [];
-        let particles = [], splatters = [];
-        
-        // Physics Data
         let state = {
-            pos: new THREE.Vector3(0, 10, 0),
+            active: false, bikeIdx: 0,
+            pos: new THREE.Vector3(0, 0, 0),
             vel: new THREE.Vector3(0, 0, 0),
-            quat: new THREE.Quaternion(),
             yaw: 0, pitch: 0, roll: 0,
-            steerAngle: 0,
-            rpm: 1000, speed: 0,
-            isGrounded: false,
-            airTime: 0,
-            suspension: 0
+            steer: 0, speed: 0, rpm: 1000,
+            grounded: true, suspension: 0
         };
 
-        let input = { gas: 0, brake: 0, steer: 0, lean: 0, jump: false };
-        let settings = { bikeIdx: 0, map: 'track', active: false };
-        
-        // Components
-        let bikeComponents = {
-            bars: null,
-            fender: null,
-            frontWheel: null,
-            rearWheel: null,
-            forks: null
-        };
+        let input = { w:0, s:0, a:0, d:0, space:0, up:0, down:0 };
+        let audioCtx, osc, gain;
 
-        // Audio
-        let audioCtx, masterBus, engineOsc, engineGain;
-
-        // --- UI BINDINGS ---
-        window.selectBike = (idx, el) => {
-            settings.bikeIdx = idx;
-            document.querySelectorAll('#garage-ui .card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            document.documentElement.style.setProperty('--neon-green', BIKE_CONFIGS[idx].color === 0x39ff14 ? '#39ff14' : 
-                                                    BIKE_CONFIGS[idx].color === 0xff1100 ? '#ff1100' : '#0055ff');
-        };
-
-        window.selectMap = (map, el) => {
-            settings.map = map;
-            el.parentElement.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        // --- UI LOGIC ---
+        window.setBike = (idx, el) => {
+            state.bikeIdx = idx;
+            document.querySelectorAll('.bike-card').forEach(c => c.classList.remove('active'));
             el.classList.add('active');
         };
 
-        window.startSim = () => {
-            document.getElementById('splash-screen').style.opacity = '0';
+        window.ignition = () => {
+            document.getElementById('menu-overlay').style.opacity = '0';
             setTimeout(() => {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('hud-container').style.display = 'block';
-                if ("ontouchstart" in window) document.getElementById('mobile-controls').style.display = 'flex';
-                initSim();
+                document.getElementById('menu-overlay').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                initGame();
                 initAudio();
-                settings.active = true;
-            }, 1000);
+                state.active = true;
+            }, 800);
         };
 
-        // --- INITIALIZATION ---
-        function initSim() {
-            clock = new THREE.Clock();
+        // --- CORE INITIALIZATION ---
+        function initGame() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.FogExp2(0x87CEEB, 0.005);
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.004);
+            clock = new THREE.Clock();
 
-            camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 4000);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.VSMShadowMap;
             document.body.appendChild(renderer.domElement);
 
             const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-            sun.position.set(300, 500, 100);
+            sun.position.set(200, 400, 100);
             sun.castShadow = true;
-            sun.shadow.camera.left = -500; sun.shadow.camera.right = 500;
-            sun.shadow.camera.top = 500; sun.shadow.camera.bottom = -500;
             scene.add(sun);
             scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
+            createWorld();
             createBike();
-            createTerrain();
-            createInputListeners();
+            setupInput();
+
+            // Ground the bike immediately
+            state.pos.y = getTerrainHeight(0, 0) + 1.6;
             
-            // Set spawn
-            state.pos.y = getTerrainHeight(0, 0) + 2;
-            animate();
+            loop();
         }
 
-        // --- 3D MODELING (COMPONENT BASED) ---
-        function createBike() {
-            bikeBody = new THREE.Group();
-            scene.add(bikeBody);
-
-            const c = BIKE_CONFIGS[settings.bikeIdx];
-            const matPlastic = new THREE.MeshStandardMaterial({ color: c.color, roughness: 0.3, metalness: 0.2 });
-            const matMetal = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
-            const matBlack = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-
-            // 1. Frame / Chassis
-            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.5, 3), matMetal);
-            frame.position.y = 1.5;
-            bikeBody.add(frame);
-
-            // 2. Engine Block
-            const engine = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1, 1.2), matBlack);
-            engine.position.set(0, 1, 0.2);
-            bikeBody.add(engine);
-
-            // 3. Rear Swingarm & Wheel
-            const swingarm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 2), matMetal);
-            swingarm.position.set(0, 1, -1.2);
-            bikeBody.add(swingarm);
-
-            const rWheel = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.4, 24), matBlack);
-            rWheel.rotation.z = Math.PI / 2;
-            rWheel.position.set(0, 1.3, -2.2);
-            bikeBody.add(rWheel);
-            bikeComponents.rearWheel = rWheel;
-
-            // 4. Forks & Front Steering (FPV Focus)
-            const steeringRig = new THREE.Group();
-            steeringRig.position.set(0, 1.5, 1.8);
-            bikeBody.add(steeringRig);
-            bikeComponents.bars = steeringRig;
-
-            const forkL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), matMetal);
-            forkL.position.set(0.3, 1, 0.3); forkL.rotation.x = -0.3;
-            steeringRig.add(forkL);
-            const forkR = forkL.clone(); forkR.position.x = -0.3;
-            steeringRig.add(forkR);
-
-            const bars = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2), matBlack);
-            bars.rotation.z = Math.PI/2; bars.position.set(0, 2.8, 0);
-            steeringRig.add(bars);
-
-            const fender = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 1.8), matPlastic);
-            fender.position.set(0, 0.8, 0.5); fender.rotation.x = 0.2;
-            steeringRig.add(fender);
-
-            const fWheel = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.2, 24), matBlack);
-            fWheel.rotation.z = Math.PI/2; fWheel.position.set(0, -0.2, 0.8);
-            steeringRig.add(fWheel);
-            bikeComponents.frontWheel = fWheel;
-
-            // 5. Seat & Tank
-            const tank = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.5), matPlastic);
-            tank.position.set(0, 2.5, 0.5); tank.rotation.x = -0.3;
-            bikeBody.add(tank);
-
-            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 2), matBlack);
-            seat.position.set(0, 2.5, -0.8);
-            bikeBody.add(seat);
-
-            // 6. FPV Helmet Camera Setup
-            camera.position.set(0, 4.8, -0.4);
-            bikeBody.add(camera);
-        }
-
-        // --- WORLD GENERATION ---
-        function createTerrain() {
-            const size = 4000, segs = 200;
+        // --- PROCEDURAL TEXTURED WORLD ---
+        function createWorld() {
+            const size = 3000, segs = 150;
             const geo = new THREE.PlaneGeometry(size, size, segs, segs);
             const pos = geo.attributes.position.array;
 
-            let color = 0x5c4033;
-            if (settings.map === 'woods') color = 0x2d4c1e;
-            if (settings.map === 'city') color = 0x333333;
-
+            // Heightmap Generation
             for (let i = 0; i < pos.length; i += 3) {
-                let x = pos[i], y = pos[i+1];
-                let z = 0;
+                const x = pos[i], y = pos[i+1];
+                // Large hills + Small bumps
+                let h = Math.sin(x * 0.01) * 20 + Math.cos(y * 0.01) * 20;
+                h += Math.sin(x * 0.1) * 1.5; 
+                
+                // Track Path (Clearer area)
+                const path = Math.abs(x + Math.sin(y * 0.02) * 50);
+                if (path < 20) h -= 2;
 
-                if (settings.map === 'track') {
-                    // Complex MX track generation
-                    z = Math.sin(x * 0.05) * Math.cos(y * 0.05) * 5;
-                    // Jump rhythm
-                    if (Math.abs(x) < 50) {
-                        let rhythm = Math.sin(y * 0.08);
-                        if (rhythm > 0.6) z += (rhythm - 0.6) * 60; // Kickers
-                        if (rhythm < -0.8) z += 10; // Landings
-                    }
-                } else if (settings.map === 'woods') {
-                    z = Math.sin(x * 0.01) * 30 + Math.cos(y * 0.02) * 20;
-                    z += (Math.random() - 0.5) * 2; // Roughness
-                } else {
-                    z = Math.sin(x * 0.005) * 5; // City rolls
-                }
-                pos[i+2] = z;
+                pos[i+2] = h;
             }
-
             geo.computeVertexNormals();
+
+            // Create Dirt Texture on Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(0,0,512,512);
+            for(let i=0; i<5000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#4e342e' : '#6d4c41';
+                ctx.fillRect(Math.random()*512, Math.random()*512, 2, 2);
+            }
+            const dirtTex = new THREE.CanvasTexture(canvas);
+            dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping;
+            dirtTex.repeat.set(80, 80);
+
             terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ 
-                color: color, roughness: 1, flatShading: true 
+                map: dirtTex, roughness: 1, metalness: 0 
             }));
             terrain.rotation.x = -Math.PI / 2;
             terrain.receiveShadow = true;
             scene.add(terrain);
-
-            // Add Map specific objects
-            populateProps(size);
         }
 
-        function populateProps(size) {
-            for(let i=0; i<300; i++) {
-                let rx = (Math.random() - 0.5) * size;
-                let rz = (Math.random() - 0.5) * size;
-                let rh = getTerrainHeight(rx, rz);
+        // --- HI-RES BIKE MODEL (COMPONENT DRIVEN) ---
+        function createBike() {
+            bikeRoot = new THREE.Group();
+            scene.add(bikeRoot);
 
-                if (settings.map === 'woods') {
-                    // Tree construction
-                    const tree = new THREE.Group();
-                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 12), new THREE.MeshStandardMaterial({color: 0x3e2723}));
-                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(6, 30, 8), new THREE.MeshStandardMaterial({color: 0x1b5e20}));
-                    leaves.position.y = 15; trunk.position.y = 6;
-                    tree.add(trunk); tree.add(leaves);
-                    tree.position.set(rx, rh, rz);
-                    scene.add(tree);
-                } else if (settings.map === 'city') {
-                    const b = new THREE.Mesh(new THREE.BoxGeometry(20, 50 + Math.random()*100, 20), new THREE.MeshStandardMaterial({color: 0x555555}));
-                    b.position.set(rx, rh + 25, rz);
-                    scene.add(b);
-                }
-            }
+            const spec = bikeSpecs[state.bikeIdx];
+            const matPlastic = new THREE.MeshStandardMaterial({ color: spec.color, roughness: 0.3 });
+            const matMetal = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8 });
+            const matBlack = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+            // Frame & Engine
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 2.5), matMetal);
+            frame.position.y = 1.2;
+            bikeRoot.add(frame);
+
+            // Rear Suspension / Swingarm
+            const swingarm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 1.5), matMetal);
+            swingarm.position.set(0, 0.8, -1.2);
+            bikeRoot.add(swingarm);
+
+            rearWheel = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.4, 16), matBlack);
+            rearWheel.rotation.z = Math.PI/2;
+            rearWheel.position.set(0, 1.3, -2.2);
+            bikeRoot.add(rearWheel);
+
+            // Front End (FPV Focus)
+            forkAssembly = new THREE.Group();
+            forkAssembly.position.set(0, 1.8, 1.5);
+            bikeRoot.add(forkAssembly);
+
+            const forks = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4), matMetal);
+            forks.rotation.x = -0.3;
+            forks.position.set(0.25, 0.5, 0.2);
+            forkAssembly.add(forks);
+            const forksR = forks.clone(); forksR.position.x = -0.25;
+            forkAssembly.add(forksR);
+
+            // Handlebars - DETAILED
+            handlebars = new THREE.Group();
+            handlebars.position.set(0, 2.4, -0.1);
+            forkAssembly.add(handlebars);
+
+            const barTube = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2), matBlack);
+            barTube.rotation.z = Math.PI/2;
+            handlebars.add(barTube);
+
+            const barPad = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.6), matPlastic);
+            barPad.rotation.z = Math.PI/2;
+            handlebars.add(barPad);
+
+            const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4), matBlack);
+            gripL.rotation.z = Math.PI/2; gripL.position.set(-0.9, 0, 0);
+            handlebars.add(gripL);
+            const gripR = gripL.clone(); gripR.position.x = 0.9;
+            handlebars.add(gripR);
+
+            frontWheel = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.2, 16), matBlack);
+            frontWheel.rotation.z = Math.PI/2;
+            frontWheel.position.set(0, -1.8, 0.7);
+            forkAssembly.add(frontWheel);
+
+            // Camera Mounting (Helmet Position)
+            camera.position.set(0, 4.5, -0.8);
+            camera.rotation.x = -0.25;
+            bikeRoot.add(camera);
         }
 
         function getTerrainHeight(x, z) {
-            const ray = new THREE.Raycaster(new THREE.Vector3(x, 500, z), new THREE.Vector3(0, -1, 0));
+            const ray = new THREE.Raycaster(new THREE.Vector3(x, 1000, z), new THREE.Vector3(0, -1, 0));
             const hit = ray.intersectObject(terrain);
             return hit.length > 0 ? hit[0].point.y : 0;
         }
 
-        // --- AUDIO SYNTHESIS ---
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            masterBus = audioCtx.createGain();
-            masterBus.connect(audioCtx.destination);
-            
-            engineOsc = audioCtx.createOscillator();
-            engineOsc.type = BIKE_CONFIGS[settings.bikeIdx].stroke === 2 ? 'sawtooth' : 'square';
-            engineGain = audioCtx.createGain();
-            
-            engineOsc.connect(engineGain);
-            engineGain.connect(masterBus);
-            engineOsc.start();
-            engineGain.gain.value = 0.1;
+            osc = audioCtx.createOscillator();
+            gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.value = 0.05;
         }
 
-        // --- INPUT HANDLING ---
-        function createInputListeners() {
-            window.addEventListener('keydown', e => {
-                if(e.code === 'KeyW') input.gas = 1;
-                if(e.code === 'KeyS') input.brake = 1;
-                if(e.code === 'KeyA') input.steer = 1;
-                if(e.code === 'KeyD') input.steer = -1;
-                if(e.code === 'ArrowUp') input.lean = -1;
-                if(e.code === 'ArrowDown') input.lean = 1;
-                if(e.code === 'Space') input.jump = true;
+        function setupInput() {
+            const k = (key, val) => window.addEventListener(key === 'down' ? 'keydown' : 'keyup', e => {
+                const map = { KeyW:'w', KeyS:'s', KeyA:'a', KeyD:'d', Space:'space', ArrowUp:'up', ArrowDown:'down' };
+                if (map[e.code]) input[map[e.code]] = (key === 'down' ? 1 : 0);
             });
-            window.addEventListener('keyup', e => {
-                if(e.code === 'KeyW') input.gas = 0;
-                if(e.code === 'KeyS') input.brake = 0;
-                if(e.code === 'KeyA' || e.code === 'KeyD') input.steer = 0;
-                if(e.code === 'ArrowUp' || e.code === 'ArrowDown') input.lean = 0;
-                if(e.code === 'Space') input.jump = false;
-            });
-
-            // Mobile binds
-            const bind = (id, key, val) => {
-                const el = document.getElementById(id);
-                el.onpointerdown = () => input[key] = val;
-                el.onpointerup = () => input[key] = 0;
-            };
-            bind('m-gas', 'gas', 1); bind('m-brake', 'brake', 1);
-            bind('m-left', 'steer', 1); bind('m-right', 'steer', -1);
+            k('down'); k('up');
         }
 
-        // --- PHYSICS SOLVER & LOOP ---
-        function animate() {
-            if(!settings.active) return;
-            requestAnimationFrame(animate);
+        // --- MAIN LOOP ---
+        function loop() {
+            if (!state.active) return requestAnimationFrame(loop);
+            requestAnimationFrame(loop);
 
-            const dt = PHYSICS_STEP;
-            const config = BIKE_CONFIGS[settings.bikeIdx];
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const spec = bikeSpecs[state.bikeIdx];
 
-            // 1. Terrain Sampling
-            const fX = state.pos.x + Math.sin(state.yaw) * 1.8;
-            const fZ = state.pos.z + Math.cos(state.yaw) * 1.8;
-            const rX = state.pos.x - Math.sin(state.yaw) * 1.8;
-            const rZ = state.pos.z - Math.cos(state.yaw) * 1.8;
+            // 1. Terrain Probe
+            const h = getTerrainHeight(state.pos.x, state.pos.z);
+            state.grounded = state.pos.y <= h + 1.6;
 
-            const hF = getTerrainHeight(fX, fZ);
-            const hR = getTerrainHeight(rX, rZ);
-            const groundY = Math.max(hF, hR);
+            // 2. Physics & Controls
+            if (state.grounded) {
+                // Throttle
+                if (input.w) state.speed += spec.torque * 50 * dt;
+                if (input.s) state.speed -= 80 * dt;
+                state.speed *= 0.98;
 
-            state.isGrounded = state.pos.y <= groundY + 1.6;
+                // Steering (A = Turn Left, D = Turn Right)
+                const steerTarget = (input.a - input.d) * 0.6;
+                state.steer = THREE.MathUtils.lerp(state.steer, steerTarget, 0.1);
+                state.yaw += state.steer * (state.speed * 0.02) * dt;
 
-            // 2. Drive & Steering
-            if (state.isGrounded) {
-                state.airTime = 0;
-                if (input.gas) {
-                    state.speed += (config.power / config.weight) * 200 * dt;
-                }
-                if (input.brake) state.speed -= 100 * dt;
-                
-                state.speed *= 0.98; // Friction
-                
-                state.steerAngle = THREE.MathUtils.lerp(state.steerAngle, input.steer * 0.6, 0.1);
-                state.yaw += state.steerAngle * (state.speed * 0.02) * dt;
-
-                const targetPitch = Math.atan2(hR - hF, 3.6);
-                state.pitch = THREE.MathUtils.lerp(state.pitch, targetPitch, 0.2);
-                
-                state.pos.y = groundY + 1.5;
+                // Snapping to Ground
+                state.pos.y = h + 1.5;
                 state.vel.y = 0;
-
-                if (input.jump) state.vel.y = 15;
-            } else {
-                state.airTime += dt;
-                state.vel.y -= GRAVITY * dt;
-                state.speed *= 0.99;
                 
-                // Acrobatics
-                if (input.lean !== 0) state.pitch += input.lean * dt * 4;
+                // Jump
+                if (input.space) state.vel.y = 15;
+            } else {
+                state.vel.y -= 35 * dt; // Gravity
+                state.speed *= 0.99;
+                // In-air lean
+                if (input.up) state.pitch -= 2 * dt;
+                if (input.down) state.pitch += 2 * dt;
             }
 
             // 3. Integration
             state.pos.x += Math.sin(state.yaw) * state.speed * dt;
-            state.pos.y += state.vel.y * dt;
             state.pos.z += Math.cos(state.yaw) * state.speed * dt;
+            state.pos.y += state.vel.y * dt;
 
-            // 4. Audio & HUD Update
-            let targetRPM = 1000 + Math.abs(state.speed) * 150;
-            if (input.gas) targetRPM += 2000;
-            state.rpm = THREE.MathUtils.lerp(state.rpm, targetRPM, 0.1);
+            // 4. Component Animation
+            bikeRoot.position.copy(state.pos);
+            bikeRoot.rotation.set(state.pitch, state.yaw, state.steer * 0.5);
+            
+            forkAssembly.rotation.y = state.steer;
+            frontWheel.rotation.x -= state.speed * dt * 0.5;
+            rearWheel.rotation.x -= state.speed * dt * 0.5;
 
+            // Camera Vibration based on RPM
+            state.rpm = 1000 + Math.abs(state.speed) * 120 + (input.w * 3000);
+            const vibe = Math.sin(Date.now() * 0.05) * (state.rpm / 20000);
+            camera.position.y = 4.5 + vibe;
+
+            // 5. Audio & HUD
             if (audioCtx) {
-                engineOsc.frequency.setTargetAtTime(state.rpm / 20, audioCtx.currentTime, 0.05);
-                engineGain.gain.setTargetAtTime(0.05 + (state.rpm/10000)*0.1, audioCtx.currentTime, 0.05);
+                osc.frequency.setTargetAtTime(state.rpm / 15, audioCtx.currentTime, 0.1);
+                gain.gain.setTargetAtTime(0.05 + (state.rpm / 10000) * 0.1, audioCtx.currentTime, 0.1);
             }
 
-            // 5. Visual Transformation
-            bikeBody.position.copy(state.pos);
-            bikeBody.rotation.set(state.pitch, state.yaw, state.roll);
-            bikeComponents.bars.rotation.y = state.steerAngle;
-            
-            // Camera Vibrations
-            const vibe = Math.sin(Date.now() * 0.1) * (state.rpm / 20000);
-            camera.position.y = 4.8 + vibe;
-
-            // HUD
-            document.getElementById('speed-txt').innerText = Math.abs(Math.round(state.speed * 1.2));
-            document.getElementById('rpm-bar').style.width = (state.rpm / 12000 * 100) + "%";
+            document.getElementById('sp-val').innerText = Math.abs(Math.round(state.speed * 1.5));
+            document.getElementById('rpm-f').style.width = (state.rpm / 12000 * 100) + '%';
 
             renderer.render(scene, camera);
         }
 
-        // --- FINAL ENGINE OVERHEAD ---
-        // (This section handles resizing, cleanup, and procedural memory management)
-        window.onresize = () => {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        };
+        });
+
     </script>
 </body>
 </html>
