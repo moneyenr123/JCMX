@@ -1,649 +1,506 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>JCMX 3D — Dirt Bike</title>
-  <link rel="icon" href="favicon.png" type="image/png" />
-  <style>
-    :root{
-      --bg:#07101a; --fg:#e9eef6; --accent:#00ff88; --danger:#ff4b4b;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;width:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-    body{background:linear-gradient(180deg,#07101a 0%, #02040a 100%);color:var(--fg);overflow:hidden;touch-action:none}
-    #root{position:fixed;inset:0;display:flex;flex-direction:column}
-    header.top{height:56px;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.2));border-bottom:1px solid rgba(255,255,255,0.03);z-index:40}
-    .brand{font-weight:800;letter-spacing:0.12em;font-size:1.05rem}
-    .brand .jc{color:var(--accent)}
-    .hud{display:flex;gap:8px;align-items:center;font-size:0.85rem}
-    .pill{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.04)}
-    main.stage{flex:1;position:relative;display:flex;align-items:stretch;justify-content:center}
-    #canvas-container{position:absolute;inset:0;overflow:hidden}
-    canvas#three-canvas{width:100%;height:100%;display:block}
-    .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:60;pointer-events:auto}
-    .panel{min-width:320px;max-width:920px;padding:18px;border-radius:12px;background:rgba(6,8,12,0.95);border:1px solid rgba(255,255,255,0.04);box-shadow:0 20px 60px rgba(0,0,0,0.6)}
-    .panel h1{font-size:1.4rem;margin-bottom:6px}
-    .panel p{opacity:0.85;margin-bottom:12px}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    .bike-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-    .bike-card{padding:8px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.04);text-align:center}
-    .bike-card.active{box-shadow:0 0 0 4px rgba(0,255,136,0.06);border-color:rgba(0,255,136,0.18)}
-    .level-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin-top:8px;max-height:220px;overflow:auto}
-    .level-btn{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);cursor:pointer}
-    .level-btn.current{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,255,136,0.04)}
-    .controls{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;z-index:50;pointer-events:none}
-    .control-group{display:flex;gap:10px;pointer-events:auto}
-    .touch{width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.6));display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--fg);border:1px solid rgba(255,255,255,0.06);user-select:none}
-    .touch.small{width:46px;height:46px;font-size:14px}
-    .hud-right{position:fixed;right:12px;top:12px;z-index:50;display:flex;gap:8px}
-    button.btn{padding:8px 12px;border-radius:999px;border:none;background:var(--accent);color:#000;font-weight:700;cursor:pointer}
-    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--fg)}
-    @media (max-width:720px){.bike-row{grid-template-columns:repeat(2,1fr)} .touch{width:56px;height:56px}}
-  </style>
+    <meta charset="UTF-8">
+    <title>JCMX Pro Series</title>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../favicon.png">
+    <meta name="apple-mobile-web-app-title" content="JCMX">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <style>
+        :root { --accent: #ff4b5c; --bg: #050505; --ui-bg: rgba(10, 10, 15, 0.85); }
+        * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Impact', sans-serif; color: white; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+
+        /* HUD & UI */
+        #hud { position: absolute; top: 15px; left: 15px; pointer-events: none; z-index: 10; }
+        .hud-box { background: var(--ui-bg); padding: 10px 20px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 10px; backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .hud-title { font-size: 12px; color: #888; letter-spacing: 2px; }
+        .hud-val { font-size: 28px; font-weight: bold; margin-top: -2px; }
+        
+        #trick-banner { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); font-size: 4rem; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,1), 2px 2px 0px #000; display: none; z-index: 20; white-space: nowrap; font-style: italic; }
+        #score-display { position: absolute; top: 15px; right: 15px; text-align: right; pointer-events: none; z-index: 10; }
+
+        /* Menus */
+        #main-menu, #tutorial { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .hidden { display: none !important; }
+        h1 { font-size: 5rem; margin: 0; color: white; text-shadow: 3px 3px 0 var(--accent); letter-spacing: 4px; }
+        h2 { color: #aaa; font-family: sans-serif; font-weight: 300; text-transform: uppercase; letter-spacing: 2px; }
+
+        .btn-row { display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
+        button { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: white; padding: 15px 30px; font-size: 1.2rem; font-family: 'Impact'; cursor: pointer; transition: all 0.2s; border-radius: 8px; text-transform: uppercase; }
+        button:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 75, 92, 0.4); }
+        .active-btn { background: var(--accent); border-color: var(--accent); }
+
+        .bike-green { border-color: #00ff66; } .bike-green.active-btn { background: #00ff66; color: black;}
+        .bike-red { border-color: #ff3b4f; } .bike-red.active-btn { background: #ff3b4f; color: black;}
+        .bike-blue { border-color: #4da3ff; } .bike-blue.active-btn { background: #4da3ff; color: black;}
+
+        .tutorial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; font-family: sans-serif; max-width: 600px; margin: 30px 0; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 12px; }
+        .tut-key { color: var(--accent); font-weight: bold; }
+
+        /* Mobile Controls */
+        #mobile-controls { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 20px; z-index: 50; pointer-events: none; }
+        .ctrl-group { display: flex; gap: 10px; pointer-events: auto; }
+        .m-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(4px); }
+        .m-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.95); }
+        @media (min-width: 800px) { #mobile-controls { display: none; } }
+    </style>
 </head>
 <body>
-  <div id="root">
-    <header class="top">
-      <div class="brand"><span class="jc">JC</span>MX 3D</div>
-      <div class="hud">
-        <div class="pill" id="hud-bike">Bike: XK</div>
-        <div class="pill" id="hud-level">Level: 1 / 50</div>
-        <div class="pill" id="hud-time">Time: 0.0s</div>
-        <div class="pill" id="hud-speed">Speed: 0.0</div>
-      </div>
-    </header>
 
-    <main class="stage">
-      <div id="canvas-container"></div>
+    <div id="hud" class="hidden">
+        <div class="hud-box"><div class="hud-title">SPEED</div><div class="hud-val"><span id="speed-out">0</span> <span style="font-size:14px; color:#888;">MPH</span></div></div>
+        <div class="hud-box" style="border-left-color: #4da3ff;"><div class="hud-title">GEAR</div><div class="hud-val" id="gear-out">1</div></div>
+    </div>
+    
+    <div id="score-display" class="hidden hud-box">
+        <div class="hud-title">TRICK SCORE</div><div class="hud-val" id="score-out">0</div>
+    </div>
 
-      <div id="menu" class="overlay">
-        <div class="panel">
-          <h1>JCMX 3D — Prototype</h1>
-          <p>Playable 3D dirt bike with physics-driven wheels, suspension, and procedural terrain. Use arrow keys or on-screen buttons. Include two_stroke.mp3 and favicon.png in the same folder.</p>
+    <div id="trick-banner">SUPERMAN!</div>
 
-          <div style="margin-top:12px">
-            <strong>Bike Select</strong>
-            <div class="bike-row" id="bike-row">
-              <div class="bike-card" data-bike="xk"><div style="height:12px;background:#00ff66;border-radius:6px;margin-bottom:6px"></div><div>XK — Balanced</div></div>
-              <div class="bike-card" data-bike="zy"><div style="height:12px;background:#4da3ff;border-radius:6px;margin-bottom:6px"></div><div>ZY — Grip & Air</div></div>
-              <div class="bike-card" data-bike="rc"><div style="height:12px;background:#ff3b4f;border-radius:6px;margin-bottom:6px"></div><div>RC — Power</div></div>
-              <div class="bike-card" data-bike="cfr"><div style="height:12px;background:#ff3b4f;border-radius:6px;margin-bottom:6px"></div><div>CFR — Pro</div></div>
+    <div id="main-menu">
+        <h1>JCMX PRO</h1>
+        <h2>Select Your Ride</h2>
+        <div class="btn-row">
+            <button class="bike-green active-btn" id="b-green" onclick="selectBike(0, 'b-green')">85cc 2-Stroke</button>
+            <button class="bike-red" id="b-red" onclick="selectBike(1, 'b-red')">450cc 4-Stroke</button>
+            <button class="bike-blue" id="b-blue" onclick="selectBike(2, 'b-blue')">250cc Factory</button>
+        </div>
+        <h2>Select Location</h2>
+        <div class="btn-row">
+            <button class="map-btn active-btn" id="m-track" onclick="selectMap('track', 'm-track')">Motocross Track</button>
+            <button class="map-btn" id="m-city" onclick="selectMap('city', 'm-city')">Urban City</button>
+            <button class="map-btn" id="m-woods" onclick="selectMap('woods', 'm-woods')">Deep Woods</button>
+        </div>
+        <button style="margin-top: 30px; background: var(--accent); color: white; font-size: 1.5rem;" onclick="showTutorial()">LET'S RIDE</button>
+    </div>
+
+    <div id="tutorial" class="hidden">
+        <h2 style="color: white; margin-bottom: 0;">How to Ride</h2>
+        <div class="tutorial-grid">
+            <div><span class="tut-key">W / UP</span> - Accelerate</div>
+            <div><span class="tut-key">S / DOWN</span> - Brake / Reverse</div>
+            <div><span class="tut-key">A / LEFT</span> - Lean Back (Wheelie / Backflip)</div>
+            <div><span class="tut-key">D / RIGHT</span> - Lean Forward (Stoppie / Frontflip)</div>
+            <div><span class="tut-key">SPACE</span> - Bunny Hop / Jump</div>
+            <div><span class="tut-key">SHIFT</span> - Clutch (Rev Engine)</div>
+            <div style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; margin-top: 10px;">
+                <span class="tut-key">TRICKS (IN AIR):</span> Press <b>1</b> (Superman), <b>2</b> (No-Hander), <b>3</b> (Nac-Nac)
             </div>
-          </div>
-
-          <div style="margin-top:12px">
-            <strong>Level Select</strong>
-            <div class="level-grid" id="level-grid"></div>
-          </div>
-
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-            <button id="btn-play" class="btn">Play</button>
-            <button id="btn-random" class="btn secondary">Random</button>
-          </div>
         </div>
-      </div>
+        <button style="background: #00ff88; color: black;" onclick="startGame()">START ENGINE</button>
+    </div>
 
-      <div id="pause" class="overlay" style="display:none;pointer-events:auto">
-        <div class="panel small">
-          <h2>Paused</h2>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button id="btn-resume" class="btn">Resume</button>
-            <button id="btn-menu" class="btn secondary">Menu</button>
-          </div>
+    <div id="mobile-controls" class="hidden">
+        <div class="ctrl-group">
+            <div class="m-btn" id="btn-l">⟲</div>
+            <div class="m-btn" id="btn-r">⟳</div>
         </div>
-      </div>
-
-      <div id="finish" class="overlay" style="display:none;pointer-events:auto">
-        <div class="panel small">
-          <h2>Level Complete</h2>
-          <p id="finish-time">Time: 0.0s</p>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-            <button id="btn-next" class="btn">Next</button>
-            <button id="btn-restart" class="btn secondary">Restart</button>
-          </div>
+        <div class="ctrl-group">
+            <div class="m-btn" id="btn-b" style="border-color: #ff4b5c;">B</div>
+            <div class="m-btn" id="btn-g" style="border-color: #00ff88;">G</div>
         </div>
-      </div>
+    </div>
 
-      <div class="controls">
-        <div class="control-group">
-          <div id="btn-left" class="touch">⟵</div>
-          <div id="btn-right" class="touch">⟶</div>
-        </div>
-        <div class="control-group">
-          <div id="btn-brake" class="touch">⛔</div>
-          <div id="btn-gas" class="touch">▲</div>
-        </div>
-        <div class="control-group">
-          <div id="btn-restart-small" class="touch small">R</div>
-          <div id="btn-pause-small" class="touch small">II</div>
-        </div>
-      </div>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
 
-      <div class="hud-right">
-        <div class="pill" id="best-time">Best: —</div>
-      </div>
-    </main>
-  </div>
+    <script type="module">
+        import * as THREE from 'three';
 
-  <audio id="engine" src="two_stroke.mp3" loop preload="auto"></audio>
+        // --- GLOBAL STATE ---
+        let scene, camera, renderer, terrain, mapObjects = [], particles = [];
+        let bikeGroup, riderGroup, wheels = [];
+        let config = { 
+            bikeColors: [0x00ff66, 0xff3b4f, 0x4da3ff], 
+            activeBike: 0, activeMap: 'track', score: 0 
+        };
+        let physics = {
+            x: 0, y: 10, z: 0, vx: 0, vy: 0, vz: 0, speed: 0,
+            pitch: 0, yaw: 0, roll: 0,
+            wheelbase: 3.5, rideHeight: 1.2,
+            frontGrounded: false, rearGrounded: false, airTime: 0
+        };
+        let input = { gas: false, brake: false, leanB: false, leanF: false, jump: false, t1: false, t2: false, t3: false };
+        let isPlaying = false;
+        const clock = new THREE.Clock();
 
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
-    import * as CANNON from 'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js';
+        // --- UI FUNCTIONS ---
+        window.selectBike = (idx, id) => {
+            config.activeBike = idx;
+            document.querySelectorAll('.btn-row button[id^="b-"]').forEach(b => b.classList.remove('active-btn'));
+            document.getElementById(id).classList.add('active-btn');
+        };
+        window.selectMap = (map, id) => {
+            config.activeMap = map;
+            document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active-btn'));
+            document.getElementById(id).classList.add('active-btn');
+        };
+        window.showTutorial = () => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('tutorial').classList.remove('hidden');
+        };
+        window.startGame = () => {
+            document.getElementById('tutorial').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('score-display').classList.remove('hidden');
+            if (window.innerWidth < 800) document.getElementById('mobile-controls').classList.remove('hidden');
+            init3D();
+            isPlaying = true;
+        };
 
-    // ---------- Canvas and Renderer ----------
-    const container = document.getElementById('canvas-container');
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
-    renderer.setSize(window.innerWidth, window.innerHeight - document.querySelector('header.top').offsetHeight);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.shadowMap.enabled = true;
-    container.appendChild(renderer.domElement);
+        // --- CORE 3D ENGINE ---
+        function init3D() {
+            if(renderer) { document.body.removeChild(renderer.domElement); }
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x5588aa);
+            scene.fog = new THREE.FogExp2(0x5588aa, 0.004);
 
-    // Resize handling
-    function resize() {
-      const headerH = document.querySelector('header.top').getBoundingClientRect().height;
-      renderer.setSize(window.innerWidth, window.innerHeight - headerH);
-      camera.aspect = window.innerWidth / (window.innerHeight - headerH);
-      camera.updateProjectionMatrix();
-    }
-    window.addEventListener('resize', resize);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
 
-    // ---------- Scene and Camera ----------
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x07101a);
-    scene.fog = new THREE.FogExp2(0x07101a, 0.0006);
+            // Lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(100, 200, 50);
+            sun.castShadow = true;
+            sun.shadow.camera.left = -100; sun.shadow.camera.right = 100;
+            sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100;
+            scene.add(sun);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / (window.innerHeight - document.querySelector('header.top').offsetHeight), 0.1, 20000);
-    camera.position.set(0, 6, 18);
+            buildBikeAndRider();
+            buildMap();
+            setupInputs();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            physics.y = getGroundHeight(0, 0) + 10;
+            animate();
+        }
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enabled = false;
+        function buildBikeAndRider() {
+            bikeGroup = new THREE.Group();
+            scene.add(bikeGroup);
 
-    // ---------- Lights ----------
-    const hemi = new THREE.HemisphereLight(0xbfd1e5, 0x080820, 0.9);
-    scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-    dir.position.set(-10, 40, 20);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(2048, 2048);
-    dir.shadow.camera.left = -200; dir.shadow.camera.right = 200; dir.shadow.camera.top = 200; dir.shadow.camera.bottom = -200;
-    scene.add(dir);
+            const matBlack = new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.8});
+            const matMetal = new THREE.MeshStandardMaterial({color: 0x888888, metalness: 0.8, roughness: 0.2});
+            const matPlastic = new THREE.MeshStandardMaterial({color: config.bikeColors[config.activeBike], roughness: 0.4});
 
-    // ---------- Physics World ----------
-    const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
-    world.broadphase = new CANNON.SAPBroadphase(world);
-    world.solver.iterations = 10;
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 24);
+            wheelGeo.rotateZ(Math.PI/2);
+            const rWheel = new THREE.Mesh(wheelGeo, matBlack); rWheel.castShadow = true;
+            const fWheel = new THREE.Mesh(wheelGeo, matBlack); fWheel.castShadow = true;
+            rWheel.position.set(0, 1.2, -physics.wheelbase/2);
+            fWheel.position.set(0, 1.2, physics.wheelbase/2);
+            bikeGroup.add(rWheel); bikeGroup.add(fWheel);
+            wheels = [rWheel, fWheel];
 
-    // Materials and contact
-    const groundMaterial = new CANNON.Material('ground');
-    const wheelMaterial = new CANNON.Material('wheel');
-    const wheelGroundContact = new CANNON.ContactMaterial(wheelMaterial, groundMaterial, {
-      friction: 0.9,
-      restitution: 0.0,
-      contactEquationStiffness: 1e8,
-      contactEquationRelaxation: 3
-    });
-    world.addContactMaterial(wheelGroundContact);
+            // Frame & Engine
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 2.8), matMetal);
+            frame.position.set(0, 2.2, 0); frame.castShadow = true; bikeGroup.add(frame);
+            const engine = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1, 1), matBlack);
+            engine.position.set(0, 1.8, -0.2); bikeGroup.add(engine);
 
-    // ---------- Terrain ----------
-    const terrain = { step: 4, heights: null, cols: 0, length: 2600, mesh: null, body: null };
+            // Plastics / Gas Tank
+            const tank = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 1.5), matPlastic);
+            tank.position.set(0, 3.2, 0.5); tank.rotation.x = -0.2; tank.castShadow = true; bikeGroup.add(tank);
+            const fenderR = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 1.8), matPlastic);
+            fenderR.position.set(0, 2.8, -1.8); fenderR.rotation.x = -0.3; bikeGroup.add(fenderR);
+            const fenderF = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 1.5), matPlastic);
+            fenderF.position.set(0, 2.8, 2.2); fenderF.rotation.x = 0.2; bikeGroup.add(fenderF);
 
-    function valueNoise(x, seed=1337) {
-      let n = (x * 374761393 + seed * 668265263) | 0;
-      n = (n ^ (n >> 13)) * 1274126177;
-      n = n ^ (n >> 16);
-      return (n >>> 0) / 4294967295;
-    }
+            // Forks & Handlebars
+            const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.5), matMetal);
+            fork.position.set(0.2, 2.5, 1.8); fork.rotation.x = -0.3; bikeGroup.add(fork);
+            const fork2 = fork.clone(); fork2.position.x = -0.2; bikeGroup.add(fork2);
+            const bars = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5), matBlack);
+            bars.rotation.z = Math.PI/2; bars.position.set(0, 4.2, 1.2); bikeGroup.add(bars);
 
-    function smoothNoise(x, octaves=4) {
-      let total = 0, freq = 1, amp = 1, max = 0;
-      for (let o=0;o<octaves;o++){
-        const xi = Math.floor(x*freq);
-        const t = x*freq - xi;
-        const v0 = valueNoise(xi);
-        const v1 = valueNoise(xi+1);
-        const interp = (1 - Math.cos(t*Math.PI)) * 0.5;
-        const val = v0*(1-interp) + v1*interp;
-        total += val*amp;
-        max += amp;
-        amp *= 0.5;
-        freq *= 2;
-      }
-      return total / max;
-    }
+            // Seat
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 1.8), matBlack);
+            seat.position.set(0, 3.1, -0.8); bikeGroup.add(seat);
 
-    function generateTerrain(length, difficulty=1) {
-      const step = terrain.step;
-      const cols = Math.ceil(length / step) + 2;
-      const heights = new Float32Array(cols);
-      const baseY = 0;
-      let phase = 0;
-      for (let i=0;i<cols;i++){
-        const x = i * step;
-        const big = (smoothNoise(phase*0.02,3)*2-1) * 18 * difficulty;
-        const med = (smoothNoise(phase*0.08,3)*2-1) * 8 * difficulty;
-        const small = (smoothNoise(phase*0.2,2)*2-1) * 3;
-        let y = baseY + big + med + small + Math.sin(x*0.02)*2;
-        y += Math.sin(x*0.12) * 0.6;
-        heights[i] = y;
-        phase += 0.18;
-      }
-      terrain.heights = heights;
-      terrain.cols = cols;
-      terrain.length = length;
-    }
+            // --- RIDER MODEL ---
+            riderGroup = new THREE.Group();
+            riderGroup.position.set(0, 3.5, -0.5);
+            bikeGroup.add(riderGroup);
 
-    function buildTerrainMesh() {
-      if (terrain.mesh) scene.remove(terrain.mesh);
-      const cols = terrain.cols;
-      const step = terrain.step;
-      const geometry = new THREE.PlaneGeometry(terrain.length, 600, cols-1, 150);
-      geometry.rotateX(-Math.PI/2);
-      for (let i=0;i<geometry.attributes.position.count;i++){
-        const ix = i % cols;
-        const z = Math.floor(i / cols);
-        const h = terrain.heights[ix] || 0;
-        geometry.attributes.position.setY(i, h - 40 + (z/150)*40);
-      }
-      geometry.computeVertexNormals();
-      const mat = new THREE.MeshStandardMaterial({ color:0x3b2f23, roughness:1, metalness:0 });
-      const mesh = new THREE.Mesh(geometry, mat);
-      mesh.receiveShadow = true;
-      mesh.castShadow = false;
-      mesh.position.set(terrain.length/2 - 100, -10, 0);
-      scene.add(mesh);
-      terrain.mesh = mesh;
+            const matGear = new THREE.MeshStandardMaterial({color: 0x222222}); // Black gear
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.6), matGear);
+            torso.position.y = 0.75; torso.castShadow = true; riderGroup.add(torso);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), new THREE.MeshStandardMaterial({color: 0xffffff})); // Helmet
+            head.position.set(0, 1.8, 0.1); riderGroup.add(head);
+            
+            // Rider is basic for now, tricks will animate the whole riderGroup
+        }
 
-      // physics heightfield
-      if (terrain.body) world.removeBody(terrain.body);
-      const matrix = [];
-      for (let i=0;i<terrain.cols;i++) matrix.push([terrain.heights[i]]);
-      const hfShape = new CANNON.Heightfield(matrix, { elementSize: step });
-      const hfBody = new CANNON.Body({ mass: 0, material: groundMaterial });
-      hfBody.addShape(hfShape);
-      hfBody.position.set(0, -40, 0);
-      hfBody.quaternion.setFromEuler(-Math.PI/2, 0, 0);
-      world.addBody(hfBody);
-      terrain.body = hfBody;
-    }
+        function buildMap() {
+            mapObjects.forEach(obj => scene.remove(obj));
+            if(terrain) scene.remove(terrain);
+            mapObjects = [];
 
-    function getTerrainHeightAt(xWorld) {
-      const step = terrain.step;
-      const localX = xWorld / step;
-      const i = Math.floor(localX);
-      const t = localX - i;
-      const h0 = terrain.heights[Math.max(0, Math.min(terrain.cols-1, i))] || 0;
-      const h1 = terrain.heights[Math.max(0, Math.min(terrain.cols-1, i+1))] || 0;
-      return h0*(1-t) + h1*t - 40;
-    }
+            const size = 2000, segs = 200;
+            const geo = new THREE.PlaneGeometry(size, size, segs, segs);
+            const pos = geo.attributes.position.array;
 
-    // ---------- Bike using RaycastVehicle ----------
-    const bike = { chassisBody:null, chassisMesh:null, vehicle:null, wheelMeshes:[], params:null };
-    const bikeDefs = {
-      xk: { color:0x00ff66, power:1.05, weight:120, grip:0.95, air:1.05 },
-      zy: { color:0x4da3ff, power:1.00, weight:115, grip:1.05, air:1.12 },
-      rc: { color:0xff3b4f, power:1.12, weight:130, grip:0.92, air:0.98 },
-      cfr:{ color:0xff3b4f, power:1.18, weight:125, grip:1.02, air:1.08 }
-    };
-    let currentBikeId = 'xk';
+            let matColor = 0x5c4033; // Dirt
 
-    function createBike(x=100, y=12, z=0) {
-      // cleanup
-      if (bike.vehicle) {
-        try { bike.vehicle.removeFromWorld(world); } catch(e){}
-      }
-      if (bike.chassisBody) {
-        try { world.removeBody(bike.chassisBody); } catch(e){}
-      }
-      bike.wheelMeshes.forEach(m => scene.remove(m));
-      bike.wheelMeshes = [];
-      if (bike.chassisMesh) scene.remove(bike.chassisMesh);
-      bike.vehicle = null; bike.chassisBody = null; bike.chassisMesh = null;
+            // Procedural Topography Generation
+            for (let i = 0; i < pos.length; i += 3) {
+                let x = pos[i], y = pos[i+1];
+                let zHeight = 0;
 
-      const def = bikeDefs[currentBikeId];
-      const mass = Math.max(20, def.weight / 6);
+                if (config.activeMap === 'track') {
+                    // Motocross Supercross Track layout
+                    zHeight = Math.sin(x * 0.05) * Math.cos(y * 0.05) * 5; 
+                    // Main Jump line
+                    if (Math.abs(x) < 40) {
+                        zHeight += Math.max(0, Math.sin(y * 0.08) * 15); // Huge ramps
+                        if (Math.sin(y * 0.08) > 0.8) zHeight += 5; // Kickers
+                    }
+                    // Whoops section
+                    if (x > 50 && x < 80) zHeight += Math.sin(y * 0.5) * 2; 
+                } 
+                else if (config.activeMap === 'city') {
+                    matColor = 0x333333; // Asphalt
+                    zHeight = 0; // Flat
+                    // Add ramps / stairs
+                    if (Math.abs(x % 100) < 10 && Math.abs(y % 100) < 10) zHeight = 5; 
+                } 
+                else if (config.activeMap === 'woods') {
+                    matColor = 0x3a5f2b; // Grass/Moss
+                    zHeight = Math.sin(x * 0.02) * 10 + Math.cos(y * 0.015) * 15;
+                    // Carve a dirt trail
+                    if (Math.abs(x + Math.sin(y * 0.02) * 50) < 10) zHeight -= 2; 
+                }
+                pos[i+2] = zHeight;
+            }
+            
+            geo.computeVertexNormals();
+            const mat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.9, flatShading: true });
+            terrain = new THREE.Mesh(geo, mat);
+            terrain.rotation.x = -Math.PI/2;
+            terrain.receiveShadow = true;
+            scene.add(terrain);
 
-      // chassis
-      const chassisShape = new CANNON.Box(new CANNON.Vec3(1.0, 0.35, 0.45));
-      const chassisBody = new CANNON.Body({ mass: mass, material: groundMaterial });
-      chassisBody.addShape(chassisShape);
-      chassisBody.position.set(x, y, z);
-      chassisBody.angularDamping = 0.4;
-      world.addBody(chassisBody);
+            // Populate Map Objects (Trees, Buildings)
+            for(let i=0; i<150; i++) {
+                let rx = (Math.random() - 0.5) * size;
+                let rz = (Math.random() - 0.5) * size;
+                let rh = getGroundHeight(rx, rz);
+                
+                // Don't spawn on the main track/trail
+                if (config.activeMap === 'track' && Math.abs(rx) < 50) continue;
+                if (config.activeMap === 'woods' && Math.abs(rx + Math.sin(rz * 0.02) * 50) < 15) continue;
 
-      const chassisGeo = new THREE.BoxGeometry(2.0, 0.7, 0.9);
-      const chassisMat = new THREE.MeshStandardMaterial({ color:def.color, roughness:0.6, metalness:0.05 });
-      const chassisMesh = new THREE.Mesh(chassisGeo, chassisMat);
-      chassisMesh.castShadow = true;
-      scene.add(chassisMesh);
+                let mesh;
+                if (config.activeMap === 'woods') {
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 10), new THREE.MeshStandardMaterial({color: 0x3e2723}));
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(6, 20, 7), new THREE.MeshStandardMaterial({color: 0x1b5e20}));
+                    leaves.position.y = 12;
+                    mesh = new THREE.Group(); mesh.add(trunk); mesh.add(leaves);
+                    mesh.position.set(rx, rh + 5, rz);
+                } else if (config.activeMap === 'city') {
+                    mesh = new THREE.Mesh(new THREE.BoxGeometry(20+Math.random()*20, 40+Math.random()*80, 20+Math.random()*20), new THREE.MeshStandardMaterial({color: 0x555555}));
+                    mesh.position.set(rx, rh + 20, rz);
+                }
 
-      // RaycastVehicle
-      const options = { chassisBody: chassisBody, indexRightAxis: 0, indexUpAxis: 1, indexForwardAxis: 2 };
-      const vehicle = new CANNON.RaycastVehicle(options);
+                if (mesh) {
+                    mesh.castShadow = true; mesh.receiveShadow = true;
+                    scene.add(mesh); mapObjects.push(mesh);
+                }
+            }
+        }
 
-      const wheelRadius = 0.6;
-      const wheelOptionsBase = {
-        radius: wheelRadius,
-        directionLocal: new CANNON.Vec3(0, -1, 0),
-        axleLocal: new CANNON.Vec3(1, 0, 0),
-        suspensionStiffness: 40 * def.weight * 0.01,
-        suspensionRestLength: 0.45,
-        maxSuspensionForce: 10000,
-        maxSuspensionTravel: 0.3,
-        dampingRelaxation: 2.3,
-        dampingCompression: 4.4,
-        frictionSlip: 3.5 * def.grip,
-        rollInfluence: 0.01
-      };
+        function getGroundHeight(x, z) {
+            const ray = new THREE.Raycaster(new THREE.Vector3(x, 500, z), new THREE.Vector3(0, -1, 0));
+            const hit = ray.intersectObject(terrain);
+            return hit.length > 0 ? hit[0].point.y : 0;
+        }
 
-      const wheelBase = 1.6;
-      vehicle.addWheel(Object.assign({}, wheelOptionsBase, { chassisConnectionPointLocal: new CANNON.Vec3(-wheelBase/2, -0.2, 0) })); // rear
-      vehicle.addWheel(Object.assign({}, wheelOptionsBase, { chassisConnectionPointLocal: new CANNON.Vec3(wheelBase/2, -0.2, 0) })); // front
+        function setupInputs() {
+            const setKey = (e, state) => {
+                const k = e.code;
+                if(k==='KeyW'||k==='ArrowUp') input.gas = state;
+                if(k==='KeyS'||k==='ArrowDown') input.brake = state;
+                if(k==='KeyA'||k==='ArrowLeft') input.leanB = state;
+                if(k==='KeyD'||k==='ArrowRight') input.leanF = state;
+                if(k==='Space') input.jump = state;
+                if(k==='Digit1') input.t1 = state;
+                if(k==='Digit2') input.t2 = state;
+                if(k==='Digit3') input.t3 = state;
+            };
+            window.addEventListener('keydown', e => setKey(e, true));
+            window.addEventListener('keyup', e => setKey(e, false));
 
-      vehicle.addToWorld(world);
+            // Touch bindings
+            const bindT = (id, prop) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.onpointerdown = (e)=>{e.preventDefault(); input[prop]=true;};
+                el.onpointerup = (e)=>{e.preventDefault(); input[prop]=false;};
+                el.onpointerleave = (e)=>{e.preventDefault(); input[prop]=false;};
+            };
+            bindT('btn-g', 'gas'); bindT('btn-b', 'brake');
+            bindT('btn-l', 'leanB'); bindT('btn-r', 'leanF');
+        }
 
-      // wheel visuals
-      const wheelGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.45, 20);
-      wheelGeo.rotateZ(Math.PI/2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color:0x111111, roughness:0.9 });
-      for (let i=0;i<vehicle.wheelInfos.length;i++){
-        const mesh = new THREE.Mesh(wheelGeo, wheelMat);
-        mesh.castShadow = true;
-        scene.add(mesh);
-        bike.wheelMeshes.push(mesh);
-      }
+        function spawnDirt(x, y, z) {
+            if(particles.length > 50) return;
+            const mat = new THREE.MeshBasicMaterial({color: 0x6d4c41, transparent: true, opacity: 0.8});
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), mat);
+            p.position.set(x, y, z);
+            p.userData = { vx: (Math.random()-0.5)*0.5, vy: Math.random()*1, vz: (Math.random()-0.5)*0.5, life: 1.0 };
+            scene.add(p);
+            particles.push(p);
+        }
 
-      bike.chassisBody = chassisBody;
-      bike.chassisMesh = chassisMesh;
-      bike.vehicle = vehicle;
-      bike.params = { wheelRadius, wheelBase, def };
-    }
+        function displayTrick(name, pts) {
+            const banner = document.getElementById('trick-banner');
+            banner.innerText = name + " +" + pts;
+            banner.style.display = 'block';
+            config.score += pts;
+            document.getElementById('score-out').innerText = config.score;
+            setTimeout(() => banner.style.display = 'none', 1500);
+        }
 
-    // ---------- Controls ----------
-    const input = { left:false, right:false, gas:false, brake:false };
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') input.left = true;
-      if (e.key === 'ArrowRight') input.right = true;
-      if (e.key === 'ArrowUp') input.gas = true;
-      if (e.key === ' ') { input.brake = true; e.preventDefault(); }
-      if (e.key === 'r' || e.key === 'R') restartLevel();
-      if (e.key === 'p' || e.key === 'P') togglePause();
-      if (['1','2','3','4'].includes(e.key)) selectBikeByIndex(parseInt(e.key,10)-1);
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft') input.left = false;
-      if (e.key === 'ArrowRight') input.right = false;
-      if (e.key === 'ArrowUp') input.gas = false;
-      if (e.key === ' ') input.brake = false;
-    });
+        // --- MASTER PHYSICS & RENDER LOOP ---
+        function animate() {
+            if (!isPlaying) return requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
+            
+            const dt = Math.min(clock.getDelta(), 0.05);
 
-    function bindTouch(el, key) {
-      const start = (ev) => { ev.preventDefault(); input[key] = true; };
-      const end = (ev) => { ev.preventDefault(); input[key] = false; };
-      el.addEventListener('pointerdown', start);
-      el.addEventListener('pointerup', end);
-      el.addEventListener('pointerleave', end);
-      el.addEventListener('touchstart', start, {passive:false});
-      el.addEventListener('touchend', end);
-      el.addEventListener('touchcancel', end);
-    }
+            // 1. Suspension & Ground Detection
+            // Calculate wheel positions in world space based on bike yaw/pitch
+            const cosY = Math.cos(physics.yaw), sinY = Math.sin(physics.yaw);
+            const rX = physics.x - (physics.wheelbase/2) * sinY;
+            const rZ = physics.z - (physics.wheelbase/2) * cosY;
+            const fX = physics.x + (physics.wheelbase/2) * sinY;
+            const fZ = physics.z + (physics.wheelbase/2) * cosY;
 
-    bindTouch(document.getElementById('btn-left'), 'left');
-    bindTouch(document.getElementById('btn-right'), 'right');
-    bindTouch(document.getElementById('btn-gas'), 'gas');
-    bindTouch(document.getElementById('btn-brake'), 'brake');
-    document.getElementById('btn-restart-small').addEventListener('pointerdown', (e)=>{ e.preventDefault(); restartLevel(); });
-    document.getElementById('btn-pause-small').addEventListener('pointerdown', (e)=>{ e.preventDefault(); togglePause(); });
+            const groundR = getGroundHeight(rX, rZ);
+            const groundF = getGroundHeight(fX, fZ);
+            const bikeMidGround = (groundR + groundF) / 2;
 
-    // ---------- UI and Level Management ----------
-    const levels = [];
-    for (let i=1;i<=50;i++){
-      levels.push({
-        id:i,
-        length: 2400 + i*120,
-        difficulty: 1 + i*0.02
-      });
-    }
-    let currentLevel = 0;
-    let levelTimer = 0;
-    let gamePaused = true;
-    let inMenu = true;
+            // Simple raycast suspension check
+            physics.rearGrounded = (physics.y - physics.rideHeight) <= groundR + 0.5;
+            physics.frontGrounded = (physics.y - physics.rideHeight) <= groundF + 0.5;
+            const isGrounded = physics.rearGrounded || physics.frontGrounded;
 
-    const hudBike = document.getElementById('hud-bike');
-    const hudLevel = document.getElementById('hud-level');
-    const hudTime = document.getElementById('hud-time');
-    const hudSpeed = document.getElementById('hud-speed');
-    const bestTimeEl = document.getElementById('best-time');
+            // 2. Drive Forces
+            if (isGrounded) {
+                physics.airTime = 0;
+                let accel = 0;
+                if (input.gas) { accel = 45; if(Math.random()<0.3) spawnDirt(rX, groundR, rZ); }
+                if (input.brake) accel = -30;
+                
+                physics.speed += accel * dt;
+                physics.speed *= 0.98; // Ground Friction
 
-    function buildLevelGrid() {
-      const grid = document.getElementById('level-grid');
-      grid.innerHTML = '';
-      levels.forEach((lvl, idx) => {
-        const b = document.createElement('button');
-        b.className = 'level-btn';
-        b.textContent = lvl.id;
-        if (idx === currentLevel) b.classList.add('current');
-        b.addEventListener('click', ()=>{ currentLevel = idx; updateLevelButtons(); restartLevel(); });
-        grid.appendChild(b);
-      });
-    }
-    function updateLevelButtons() {
-      const btns = document.querySelectorAll('.level-btn');
-      btns.forEach((b, idx) => b.classList.toggle('current', idx===currentLevel));
-      hudLevel.textContent = `Level: ${currentLevel+1} / ${levels.length}`;
-    }
+                // Steering
+                if (input.leanB && physics.speed > 5) physics.yaw += 1.5 * dt; // Turn Left
+                if (input.leanF && physics.speed > 5) physics.yaw -= 1.5 * dt; // Turn Right
 
-    // Bike select UI
-    const bikeCards = document.querySelectorAll('.bike-card');
-    bikeCards.forEach((card, idx) => {
-      card.addEventListener('click', () => {
-        bikeCards.forEach(c=>c.classList.remove('active'));
-        card.classList.add('active');
-        const id = card.getAttribute('data-bike');
-        currentBikeId = id;
-        hudBike.textContent = `Bike: ${id.toUpperCase()}`;
-        createBike(100, getTerrainHeightAt(100) + 6, 0);
-      });
-    });
-    bikeCards[0].classList.add('active');
+                // Jump / Preload
+                if (input.jump) physics.vy = 12;
 
-    document.getElementById('btn-play').addEventListener('click', ()=>{ document.getElementById('menu').style.display='none'; inMenu=false; gamePaused=false; restartLevel(); });
-    document.getElementById('btn-random').addEventListener('click', ()=>{ currentLevel = Math.floor(Math.random()*levels.length); updateLevelButtons(); restartLevel(); document.getElementById('menu').style.display='none'; inMenu=false; gamePaused=false; });
-    document.getElementById('btn-resume').addEventListener('click', ()=>{ gamePaused=false; document.getElementById('pause').style.display='none'; });
-    document.getElementById('btn-menu').addEventListener('click', ()=>{ document.getElementById('pause').style.display='none'; document.getElementById('menu').style.display='flex'; inMenu=true; gamePaused=true; });
-    document.getElementById('btn-next').addEventListener('click', ()=>{ document.getElementById('finish').style.display='none'; currentLevel = (currentLevel+1) % levels.length; updateLevelButtons(); restartLevel(); });
-    document.getElementById('btn-restart').addEventListener('click', ()=>{ document.getElementById('finish').style.display='none'; restartLevel(); });
+                // Ground Pitch alignment
+                const targetPitch = Math.atan2(groundR - groundF, physics.wheelbase);
+                physics.pitch = THREE.MathUtils.lerp(physics.pitch, targetPitch, 0.2);
 
-    // ---------- Engine audio ----------
-    const engineAudio = document.getElementById('engine');
-    engineAudio.volume = 0.35;
+                // Wheelies (Manual override of pitch)
+                if (input.leanB && input.gas) {
+                    physics.pitch = THREE.MathUtils.lerp(physics.pitch, -0.8, 0.1); // Wheelie
+                    if(physics.speed > 30) { /* Sticking the wheelie */ }
+                }
 
-    // ---------- Physics step using RaycastVehicle ----------
-    function stepPhysics(dt) {
-      if (!bike.vehicle || !bike.chassisBody) {
-        world.step(dt);
-        return;
-      }
-      const vehicle = bike.vehicle;
-      const def = bike.params.def;
-      const cfg = levels[currentLevel];
+                // Snap to ground y smoothly
+                if (physics.vy <= 0) {
+                    physics.y = THREE.MathUtils.lerp(physics.y, Math.max(groundR, groundF) + physics.rideHeight, 0.3);
+                    physics.vy = 0;
+                }
+            } else {
+                // Airborne
+                physics.airTime += dt;
+                physics.vy -= 25 * dt; // Gravity
+                physics.speed *= 0.995; // Air drag
 
-      // steering
-      const maxSteer = 0.45;
-      let steer = 0;
-      if (input.left) steer = maxSteer;
-      if (input.right) steer = -maxSteer;
-      vehicle.setSteeringValue(steer, 1); // front wheel
+                // Flips
+                if (input.leanB) physics.pitch -= 4 * dt; // Backflip
+                if (input.leanF) physics.pitch += 4 * dt; // Frontflip
+                
+                // Track flips
+                if (physics.pitch < -Math.PI*2) { physics.pitch += Math.PI*2; displayTrick("BACKFLIP", 1000); }
+                if (physics.pitch > Math.PI*2) { physics.pitch -= Math.PI*2; displayTrick("FRONTFLIP", 1000); }
 
-      // engine and brake
-      const maxEngineForce = 1200 * def.power;
-      const engineForce = input.gas ? maxEngineForce : 0;
-      vehicle.applyEngineForce(-engineForce, 0); // rear wheel
-      vehicle.applyEngineForce(0, 1);
+                // Airborne Tricks (Animation Hack)
+                riderGroup.position.set(0, 3.5, -0.5); riderGroup.rotation.set(0,0,0);
+                if (input.t1) { displayTrick("SUPERMAN", 50); riderGroup.position.set(0, 4, -3); riderGroup.rotation.x = Math.PI/2; }
+                if (input.t2) { displayTrick("NO-HANDER", 50); riderGroup.position.y += 1; }
+            }
 
-      const brakeForce = input.brake ? 600 : 0;
-      vehicle.setBrake(brakeForce, 0);
-      vehicle.setBrake(brakeForce, 1);
+            // Apply Velocity
+            physics.x += Math.sin(physics.yaw) * physics.speed * dt;
+            physics.y += physics.vy * dt;
+            physics.z += Math.cos(physics.yaw) * physics.speed * dt;
 
-      // step world
-      world.step(dt);
+            // Crash Safety Net (Fall through world)
+            if (physics.y < -50) {
+                physics.x = 0; physics.z = 0; physics.y = 50; physics.speed = 0; physics.vy = 0;
+            }
 
-      // update wheel visuals
-      for (let i=0;i<vehicle.wheelInfos.length;i++){
-        vehicle.updateWheelTransform(i);
-        const t = vehicle.wheelInfos[i].worldTransform;
-        const pos = t.position;
-        const quat = t.quaternion;
-        const mesh = bike.wheelMeshes[i];
-        mesh.position.set(pos.x, pos.y, pos.z);
-        mesh.quaternion.set(quat.x, quat.y, quat.z, quat.w);
-      }
+            // Update 3D Model
+            bikeGroup.position.set(physics.x, physics.y, physics.z);
+            bikeGroup.rotation.set(physics.pitch, physics.yaw, physics.roll);
+            
+            // Spin wheels
+            wheels.forEach(w => w.rotation.x -= (physics.speed * dt) / 1.2);
 
-      // sync chassis visual
-      bike.chassisMesh.position.copy(bike.chassisBody.position);
-      bike.chassisMesh.quaternion.copy(bike.chassisBody.quaternion);
+            // Update Particles
+            for(let i=particles.length-1; i>=0; i--) {
+                let p = particles[i];
+                p.position.x += p.userData.vx; p.position.y += p.userData.vy; p.position.z += p.userData.vz;
+                p.userData.vy -= 0.05; // gravity
+                p.userData.life -= 0.05;
+                p.material.opacity = p.userData.life;
+                if(p.userData.life <= 0) { scene.remove(p); particles.splice(i, 1); }
+            }
 
-      // engine audio pitch
-      const speed = bike.chassisBody.velocity.length();
-      engineAudio.playbackRate = 0.8 + Math.min(1.6, speed / 6);
-      if ((input.gas || speed > 0.5) && !engineAudio.playing && !gamePaused && !inMenu) {
-        engineAudio.play().catch(()=>{});
-        engineAudio.playing = true;
-      } else if (!input.gas && speed < 0.5 && engineAudio.playing) {
-        engineAudio.pause();
-        engineAudio.playing = false;
-      }
-    }
+            // Dynamic Camera Follow
+            const camOffset = new THREE.Vector3(
+                -Math.sin(physics.yaw) * 18, 
+                8 + (physics.airTime > 0.5 ? 5 : 0), // Pull back in air
+                -Math.cos(physics.yaw) * 18
+            );
+            camera.position.lerp(bikeGroup.position.clone().add(camOffset), 0.1);
+            camera.lookAt(bikeGroup.position.x, bikeGroup.position.y + 2, bikeGroup.position.z);
 
-    // ---------- Camera follow ----------
-    function updateCamera() {
-      if (!bike.chassisBody) return;
-      const pos = bike.chassisBody.position;
-      const target = new THREE.Vector3(pos.x, pos.y + 2.5, pos.z + 6);
-      camera.position.lerp(target, 0.12);
-      const lookAt = new THREE.Vector3(pos.x, pos.y + 1.2, pos.z);
-      camera.lookAt(lookAt);
-    }
+            // Update UI
+            document.getElementById('speed-out').innerText = Math.abs(Math.round(physics.speed * 2));
+            document.getElementById('gear-out').innerText = Math.max(1, Math.ceil(physics.speed / 15));
 
-    // ---------- HUD and particles (simple) ----------
-    const dustParticles = [];
-    function spawnDust(x,y,dir=1,amount=6){
-      for (let i=0;i<amount;i++){
-        dustParticles.push({ x:x + (Math.random()-0.5)*10, y:y + (Math.random()-0.5)*6, vx:(Math.random()*0.6+0.2)*dir, vy:-Math.random()*0.8 - 0.2, life:0.4 + Math.random()*0.6, size:2 + Math.random()*3 });
-      }
-    }
-    function updateParticles(dt){
-      for (let i=dustParticles.length-1;i>=0;i--){
-        const p = dustParticles[i];
-        p.x += p.vx * dt * 60;
-        p.y += p.vy * dt * 60;
-        p.vy += 0.02 * dt * 60;
-        p.life -= dt;
-        if (p.life <= 0) dustParticles.splice(i,1);
-      }
-    }
-    function drawParticles2D(ctx2d) {
-      // optional overlay drawing if needed; left empty for performance
-    }
-
-    // ---------- Level flow ----------
-    function restartLevel() {
-      const cfg = levels[currentLevel];
-      generateTerrain(cfg.length, cfg.difficulty);
-      buildTerrainMesh();
-      createBike(100, getTerrainHeightAt(100) + 6, 0);
-      // reset timers
-      levelTimer = 0;
-      gamePaused = false;
-      inMenu = false;
-      document.getElementById('menu').style.display = 'none';
-      document.getElementById('pause').style.display = 'none';
-      document.getElementById('finish').style.display = 'none';
-      updateLevelButtons();
-      updateBestDisplay();
-    }
-
-    function onFinish() {
-      document.getElementById('finish-time').textContent = `Time: ${levelTimer.toFixed(2)}s`;
-      // save best
-      const key = `jcmx_best_${currentLevel}`;
-      const prev = parseFloat(localStorage.getItem(key) || '0');
-      if (!prev || levelTimer < prev || prev === 0) localStorage.setItem(key, levelTimer.toFixed(2));
-      updateBestDisplay();
-      document.getElementById('finish').style.display = 'flex';
-      gamePaused = true;
-    }
-
-    function updateBestDisplay() {
-      const key = `jcmx_best_${currentLevel}`;
-      const v = localStorage.getItem(key);
-      bestTimeEl.textContent = v ? `Best: ${parseFloat(v).toFixed(2)}s` : 'Best: —';
-    }
-
-    function togglePause() {
-      gamePaused = !gamePaused;
-      document.getElementById('pause').style.display = gamePaused ? 'flex' : 'none';
-    }
-
-    function selectBikeByIndex(i) {
-      const ids = ['xk','zy','rc','cfr'];
-      currentBikeId = ids[i] || 'xk';
-      bikeCards.forEach((c, idx) => c.classList.toggle('active', idx===i));
-      hudBike.textContent = `Bike: ${currentBikeId.toUpperCase()}`;
-      createBike(100, getTerrainHeightAt(100) + 6, 0);
-    }
-
-    // ---------- Main loop ----------
-    let lastTime = performance.now();
-    function loop(now) {
-      requestAnimationFrame(loop);
-      const dt = Math.min(1/30, (now - lastTime) / 1000);
-      lastTime = now;
-
-      if (!gamePaused && !inMenu) {
-        stepPhysics(dt);
-        levelTimer += dt;
-      } else {
-        // still step small to keep world stable
-        world.step(1/60);
-      }
-
-      updateParticles(dt);
-      updateCamera();
-
-      // render
-      renderer.render(scene, camera);
-
-      // HUD
-      hudTime.textContent = `Time: ${levelTimer.toFixed(1)}s`;
-      if (bike.chassisBody) hudSpeed.textContent = `${bike.chassisBody.velocity.length().toFixed(1)}`;
-      else hudSpeed.textContent = '0.0';
-    }
-
-    // ---------- Initialization ----------
-    function init() {
-      buildLevelGrid();
-      updateLevelButtons();
-      updateBestDisplay();
-      generateTerrain(levels[currentLevel].length, levels[currentLevel].difficulty);
-      buildTerrainMesh();
-      createBike(100, getTerrainHeightAt(100) + 6, 0);
-      document.getElementById('menu').style.display = 'flex';
-      inMenu = true;
-      gamePaused = true;
-      lastTime = performance.now();
-      requestAnimationFrame(loop);
-    }
-
-    // ---------- Start ----------
-    init();
-
-    // Expose for debugging
-    window.JCMX3D = { scene, world, bike, levels, restartLevel, createBike, generateTerrain, buildTerrainMesh };
-
-  </script>
+            renderer.render(scene, camera);
+        }
+    </script>
 </body>
 </html>
